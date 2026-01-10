@@ -1,0 +1,18 @@
+{
+  "name": "harness-tools",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "typecheck": "bun tsgo",
+    "format": "bun oxfmt"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.12",
+    "@typescript/native-preview": "^7.0.0-dev.20251203.1",
+    "oxfmt": "latest"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "harness-tools-pi-extensions",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "turndown": "^7.2.2"
+  },
+  "devDependencies": {
+    "@mariozechner/pi-ai": "*",
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*",
+    "@sinclair/typebox": "*",
+    "@types/turndown": "^5.0.6"
+  }
+}
