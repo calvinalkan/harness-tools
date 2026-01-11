@@ -6,7 +6,7 @@
  */
 
 import type { AssistantMessage } from "@mariozechner/pi-ai";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { isSandboxed } from "./lib/sandbox.ts";
 
@@ -19,7 +19,16 @@ function formatTokens(count: number): string {
 }
 
 export default function (pi: ExtensionAPI) {
-  pi.on("session_start", async (_event, ctx) => {
+  // Keep a reference to the latest context - updated on every event
+  let latestCtx: ExtensionContext | null = null;
+
+  // Update latestCtx on various events to keep model info fresh
+  const updateCtx = (_event: unknown, ctx: ExtensionContext) => {
+    latestCtx = ctx;
+  };
+
+  pi.on("session_start", async (event, ctx) => {
+    updateCtx(event, ctx);
     const inSandbox = isSandboxed();
 
     ctx.ui.setFooter((tui, theme, footerData) => {
@@ -29,6 +38,24 @@ export default function (pi: ExtensionAPI) {
         dispose: unsub,
         invalidate() {},
         render(width: number): string[] {
+          // Use latestCtx for fresh model info, fall back to captured ctx
+          const currentCtx = latestCtx || ctx;
+
+          // Get current model - check session entries for model changes
+          // (ctx.model may be stale after /model or Ctrl+P)
+          let currentModel = currentCtx.model;
+          const entries = currentCtx.sessionManager.getEntries();
+          for (let i = entries.length - 1; i >= 0; i--) {
+            const entry = entries[i];
+            if (entry.type === "model_change") {
+              const resolved = currentCtx.modelRegistry.find(entry.provider, entry.modelId);
+              if (resolved) {
+                currentModel = resolved;
+              }
+              break;
+            }
+          }
+
           // Calculate cumulative usage from ALL session entries
           let totalInput = 0;
           let totalOutput = 0;
@@ -36,7 +63,7 @@ export default function (pi: ExtensionAPI) {
           let totalCacheWrite = 0;
           let totalCost = 0;
 
-          for (const entry of ctx.sessionManager.getEntries()) {
+          for (const entry of entries) {
             if (entry.type === "message" && entry.message.role === "assistant") {
               const m = entry.message as AssistantMessage;
               totalInput += m.usage.input;
@@ -48,7 +75,7 @@ export default function (pi: ExtensionAPI) {
           }
 
           // Get last assistant message for context percentage
-          const messages = ctx.sessionManager
+          const messages = currentCtx.sessionManager
             .getBranch()
             .filter((e): e is typeof e & { type: "message" } => e.type === "message")
             .map((e) => e.message);
@@ -66,12 +93,12 @@ export default function (pi: ExtensionAPI) {
               lastAssistantMessage.usage.cacheRead +
               lastAssistantMessage.usage.cacheWrite
             : 0;
-          const contextWindow = ctx.model?.contextWindow || 0;
+          const contextWindow = currentModel?.contextWindow || 0;
           const contextPercentValue = contextWindow > 0 ? (contextTokens / contextWindow) * 100 : 0;
           const contextPercent = contextPercentValue.toFixed(1);
 
           // Build pwd line with git branch
-          let pwd = ctx.cwd;
+          let pwd = currentCtx.cwd;
           const home = process.env["HOME"] || process.env["USERPROFILE"];
           if (home && pwd.startsWith(home)) {
             pwd = `~${pwd.slice(home.length)}`;
@@ -101,7 +128,9 @@ export default function (pi: ExtensionAPI) {
           if (totalOutput) statsParts.push(`↓${formatTokens(totalOutput)}`);
 
           // Cost with subscription indicator
-          const usingSubscription = ctx.model ? ctx.modelRegistry.isUsingOAuth(ctx.model) : false;
+          const usingSubscription = currentModel
+            ? currentCtx.modelRegistry.isUsingOAuth(currentModel)
+            : false;
           if (totalCost || usingSubscription) {
             statsParts.push(`$${totalCost.toFixed(3)}${usingSubscription ? " (sub)" : ""}`);
           }
@@ -118,9 +147,9 @@ export default function (pi: ExtensionAPI) {
           const statsLeft = statsParts.join(" ");
 
           // Model name + thinking level on right
-          const modelName = ctx.model?.id || "no-model";
+          const modelName = currentModel?.id || "no-model";
           let rightSide = modelName;
-          if (ctx.model?.reasoning) {
+          if (currentModel?.reasoning) {
             const thinkingLevel = pi.getThinkingLevel();
             if (thinkingLevel !== "off") {
               rightSide = `${modelName} • ${thinkingLevel}`;
@@ -155,4 +184,10 @@ export default function (pi: ExtensionAPI) {
       };
     });
   });
+
+  // Update context on events that fire after model changes
+  pi.on("turn_start", updateCtx);
+  pi.on("turn_end", updateCtx);
+  pi.on("agent_start", updateCtx);
+  pi.on("agent_end", updateCtx);
 }
