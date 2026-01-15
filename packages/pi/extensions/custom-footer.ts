@@ -47,8 +47,12 @@ export default function (pi: ExtensionAPI) {
           const entries = currentCtx.sessionManager.getEntries();
           for (let i = entries.length - 1; i >= 0; i--) {
             const entry = entries[i];
-            if (entry.type === "model_change") {
-              const resolved = currentCtx.modelRegistry.find(entry.provider, entry.modelId);
+            if (entry && entry.type === "model_change") {
+              const modelEntry = entry as { provider: string; modelId: string };
+              const resolved = currentCtx.modelRegistry.find(
+                modelEntry.provider,
+                modelEntry.modelId,
+              );
               if (resolved) {
                 currentModel = resolved;
               }
