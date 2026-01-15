@@ -11,7 +11,7 @@ let sandboxed: boolean | null = null;
 export function isSandboxed(): boolean {
   if (sandboxed === null) {
     try {
-      execSync("agent-sandbox check -q", { stdio: "ignore" });
+      execSync("agent-sandbox --check", { stdio: "ignore" });
       sandboxed = true;
     } catch {
       sandboxed = false;
