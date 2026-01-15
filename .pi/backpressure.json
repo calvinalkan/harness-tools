@@ -1,0 +1,12 @@
+{
+  "commands": {
+    "**/*.{ts,tsx}": {
+      "name": "typecheck",
+      "run": "bash -c '! (bun tsgo 2>&1 | rg \"{files_pattern}\")'"
+    }
+  },
+  "trigger": {
+    "modifications": 3,
+    "files": 2
+  }
+}
