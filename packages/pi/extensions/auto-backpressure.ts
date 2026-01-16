@@ -203,6 +203,14 @@ export default function (pi: ExtensionAPI) {
 		if (Object.keys(config.commands).length === 0) return;
 		if (!shouldTrigger()) return;
 
+		// Filter to only files still dirty in git (handles deleted/unstaged)
+		const currentDirty = getGitDirtyFiles();
+		modifiedFiles = new Set([...modifiedFiles].filter((f) => currentDirty.has(f)));
+		if (modifiedFiles.size === 0) {
+			modificationCount = 0;
+			return;
+		}
+
 		const fileGroups = groupFilesByCommand(modifiedFiles);
 		if (fileGroups.size === 0) {
 			modifiedFiles.clear();
@@ -345,6 +353,15 @@ export default function (pi: ExtensionAPI) {
 		handler: async (_args, ctx) => {
 			if (modifiedFiles.size === 0) {
 				ctx.ui.notify("No modified files to check", "info");
+				return;
+			}
+
+			// Filter to only files still dirty in git (handles deleted/unstaged)
+			const currentDirty = getGitDirtyFiles();
+			modifiedFiles = new Set([...modifiedFiles].filter((f) => currentDirty.has(f)));
+			if (modifiedFiles.size === 0) {
+				modificationCount = 0;
+				ctx.ui.notify("No modified files to check (stale files removed)", "info");
 				return;
 			}
 
