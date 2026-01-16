@@ -139,13 +139,18 @@ export default function (pi: ExtensionAPI) {
             statsParts.push(`$${totalCost.toFixed(3)}${usingSubscription ? " (sub)" : ""}`);
           }
 
-          // Context percentage with color - only show if > 40%
-          if (contextPercentValue > 70) {
+          // Context percentage with color based on usage level
+          if (contextWindow > 0) {
             const contextDisplay = `${contextPercent}%/${formatTokens(contextWindow)}`;
-            statsParts.push(theme.fg("error", contextDisplay));
-          } else if (contextPercentValue > 40) {
-            const contextDisplay = `${contextPercent}%/${formatTokens(contextWindow)}`;
-            statsParts.push(theme.fg("warning", contextDisplay));
+            if (contextPercentValue > 70) {
+              statsParts.push(theme.fg("error", contextDisplay));
+            } else if (contextPercentValue > 40) {
+              statsParts.push(theme.fg("warning", contextDisplay));
+            } else {
+              statsParts.push(contextDisplay);
+            }
+          } else {
+            statsParts.push(theme.fg("warning", "No context window info"));
           }
 
           const statsLeft = statsParts.join(" ");
