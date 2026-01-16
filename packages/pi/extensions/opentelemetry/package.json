@@ -1,0 +1,17 @@
+{
+	"name": "@harness-tools/pi-opentelemetry",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"pi": {
+		"extensions": [
+			"./index.ts"
+		]
+	},
+	"dependencies": {
+		"@sinclair/typebox": "catalog:"
+	},
+	"devDependencies": {
+		"@mariozechner/pi-coding-agent": "catalog:"
+	}
+}

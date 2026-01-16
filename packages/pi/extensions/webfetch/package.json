@@ -1,0 +1,14 @@
+{
+	"name": "@harness-tools/pi-webfetch",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"pi": {
+		"extensions": [
+			"./index.ts"
+		]
+	},
+	"dependencies": {
+		"turndown": "^7.2.2"
+	}
+}

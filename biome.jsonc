@@ -1,0 +1,63 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.2.7/schema.json",
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": {
+					"level": "on",
+					"options": {
+						"groups": [[":BUN:", ":NODE:"], ":BLANK_LINE:", ":PACKAGE:", ":BLANK_LINE:", ":PATH:"]
+					}
+				}
+			}
+		}
+	},
+	"formatter": {
+		"lineWidth": 100
+	},
+	"overrides": [
+		{
+			"includes": ["**/generated/**", "**/*.generated.ts"],
+			"formatter": {
+				"enabled": false
+			},
+			"assist": {
+				"actions": {
+					"source": {
+						"organizeImports": {
+							"level": "off"
+						}
+					}
+				}
+			}
+		}
+	],
+	"vcs": {
+		"clientKind": "git",
+		"defaultBranch": "master",
+		"enabled": true,
+		"useIgnoreFile": true
+	},
+	"html": {
+		"formatter": {
+			"enabled": true
+		}
+	},
+	"linter": {
+		// Globally disabled (using oxlint for JS/TS)
+		"enabled": false
+	},
+	"json": {
+		"parser": {
+			"allowComments": true
+		},
+		"linter": {
+			"enabled": true
+		}
+	},
+	"css": {
+		"linter": {
+			"enabled": true
+		}
+	}
+}

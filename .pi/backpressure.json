@@ -1,12 +1,9 @@
 {
-  "commands": {
-    "**/*.{ts,tsx}": {
-      "name": "typecheck",
-      "run": "bash -c '! (bun tsgo 2>&1 | rg \"{files_pattern}\")'"
-    }
-  },
-  "trigger": {
-    "modifications": 3,
-    "files": 2
-  }
+	"trigger": { "modifications": 3, "files": 2 },
+	"rules": [
+		{
+			"glob": "**/*.{ts,tsx}",
+			"commands": [{ "name": "lint-typecheck", "run": ["bash", ".pi/auto_backpressure.sh"] }]
+		}
+	]
 }

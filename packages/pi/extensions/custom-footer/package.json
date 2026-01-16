@@ -1,0 +1,14 @@
+{
+	"name": "@harness-tools/pi-custom-footer",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@harness-tools/pi-agent-sandbox": "workspace:*"
+	},
+	"devDependencies": {
+		"@mariozechner/pi-ai": "catalog:",
+		"@mariozechner/pi-coding-agent": "catalog:",
+		"@mariozechner/pi-tui": "catalog:"
+	}
+}

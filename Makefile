@@ -8,7 +8,7 @@
 #   make help     - Show this help
 
 SHELL := /bin/bash
-.PHONY: link unlink status help link-pi unlink-pi status-pi clean format typecheck check
+.PHONY: link unlink status help link-pi unlink-pi status-pi clean format typecheck check lint
 
 # Directories
 HARNESS_DIR := $(shell pwd)
@@ -56,13 +56,21 @@ clean:
 	@rm -rf node_modules packages/*/node_modules
 	@echo -e "$(GREEN)✓ Cleaned$(NC)"
 
-check: format typecheck
+check: typecheck lint
 
 format:
 	@bun run format
 
 typecheck:
 	@bun run typecheck
+
+lint:
+	@for script in backpressure/*.sh; do \
+	   [ -x "$$script" ] || continue; \
+	   echo -e "$(BLUE)Running $$script...$(NC)"; \
+	   ./$$script || exit 1; \
+	done
+	@bun run lint
 
 # ============================================================================
 # Pi Agent
