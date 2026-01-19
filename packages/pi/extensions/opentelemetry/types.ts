@@ -1,3 +1,9 @@
+type SpanLink = {
+	traceId: string;
+	spanId: string;
+	attributes?: Record<string, string | number | boolean>;
+};
+
 type Span = {
 	traceId: string;
 	spanId: string;
@@ -9,6 +15,7 @@ type Span = {
 	durationMs?: number;
 	status: "ok" | "error" | "unset";
 	attributes: Record<string, string | number | boolean>;
+	links?: SpanLink[];
 };
 
 type OTLPSpan = {
@@ -24,6 +31,14 @@ type OTLPSpan = {
 		key: string;
 		value: { stringValue?: string; intValue?: string; doubleValue?: number; boolValue?: boolean };
 	}>;
+	links?: Array<{
+		traceId: string;
+		spanId: string;
+		attributes?: Array<{
+			key: string;
+			value: { stringValue?: string; intValue?: string; doubleValue?: number; boolValue?: boolean };
+		}>;
+	}>;
 };
 
 type OTLPExport = {
@@ -36,4 +51,4 @@ type OTLPExport = {
 	}>;
 };
 
-export { OTLPExport, OTLPSpan, Span };
+export { OTLPExport, OTLPSpan, Span, SpanLink };

@@ -9,9 +9,9 @@ Telemetry design for pi coding agent following the **Wide Events** pattern.
 
 ## Design Principles
 
-1. **One "main" span per prompt** with high-cardinality attributes for discovery
-2. **Child spans** for turns and tools for drill-down/waterfall visualization
-3. **Rollups bubble up** from tools → turns → main span
+1. **One "Thread" span per session/branch** (`main=true`) with high-cardinality attributes for discovery
+2. **Input spans** per user prompt and **Turn/Tool spans** for drill-down/waterfall visualization
+3. **Rollups bubble up** from tools → turns → thread span
 4. **Attribute-per-value pattern** for queryability (not comma-separated lists)
 5. **Raw data on child spans**, aggregated counts on parent spans
 
@@ -20,24 +20,25 @@ Telemetry design for pi coding agent following the **Wide Events** pattern.
 ## Span Hierarchy
 
 ```
-Main Span (prompt) [main=true]
+Thread Span (session/branch) [main=true]
 ├── Rollups: files, commands, tokens, costs
-│
-├── Turn Span (turn-0)
+├── system_prompt (attribute, set once)
+├── Input Span (Input)          ← prompt 0
+├── Turn Span (Turn)            ← turn 0
 │   ├── Rollups: this turn's files, commands, tokens
-│   ├── Tool Span: bash
-│   ├── Tool Span: read
-│   └── Tool Span: read
-│
-├── Turn Span (turn-1)
-│   ├── Rollups: this turn's files, commands, tokens
-│   ├── Tool Span: edit
-│   └── Tool Span: bash
-│
-└── Turn Span (turn-2)
-    ├── Rollups: this turn's files, commands, tokens
-    └── Tool Span: write
+│   ├── Tool Span: Bash
+│   ├── Tool Span: Read
+│   └── Tool Span: Read
+├── Turn Span (Turn)            ← turn 1
+│   ├── Tool Span: Edit
+│   └── Tool Span: Bash
+├── Input Span (Input)          ← prompt 1
+└── Turn Span (Turn)
+    └── Tool Span: Write
 ```
+
+Input spans are created once per user prompt; Turn spans are created per model turn and are
+siblings of Input spans under the Thread.
 
 ---
 
@@ -52,7 +53,10 @@ Main Span (prompt) [main=true]
 ## Session Navigation Spans (Root)
 
 Fork and tree navigation events emit **root spans** with their own trace IDs.
-These spans are **not** children of prompt spans.
+These spans are **not** children of Thread spans. Thread spans are created on
+`session_start` and after `session_switch`/`session_tree`/`session_fork`, and the new
+Thread span links to the previous Thread via OTLP span links (`link.relation` set to
+`resume`, `tree`, or `fork`).
 
 ### `session.fork`
 
@@ -86,7 +90,9 @@ Emitted on `session_tree`.
 
 ---
 
-## Main Span Attributes
+## Thread Span Attributes
+
+Thread spans are named `Thread` and are the root spans for a session/branch.
 
 ### Identity
 
@@ -124,16 +130,6 @@ Emitted on `session_tree`.
 | `git.repo_name` | string | parse from remote URL | Repository name |
 | `git.user.name` | string | `git config user.name` | Git user |
 | `git.user.email` | string | `git config user.email` | Git email |
-
-### Input
-
-| Attribute | Type | Source | Description |
-|-----------|------|--------|-------------|
-| `input.source` | string | `InputEvent.source` | `interactive`/`rpc`/`extension` |
-| `input.text` | string | `InputEvent.text` | Full prompt (truncated) |
-| `input.text_length` | number | computed | Full length |
-| `input.has_images` | boolean | `InputEvent.images?.length > 0` | Multimodal |
-| `input.image_count` | number | `InputEvent.images?.length` | Image count |
 
 ### System Prompt
 
@@ -192,7 +188,24 @@ Emitted on `session_tree`.
 
 ---
 
-## Main Span Rollups
+## Input Span Attributes
+
+Input spans (name = `Input`) are created once per user prompt and are direct children of the
+Thread span.
+
+### Input
+
+| Attribute | Type | Source | Description |
+|-----------|------|--------|-------------|
+| `input.source` | string | `InputEvent.source` | `interactive`/`rpc`/`extension` |
+| `input.text` | string | `InputEvent.text` | Full prompt (truncated) |
+| `input.text_length` | number | computed | Full length |
+| `input.has_images` | boolean | `InputEvent.images?.length > 0` | Multimodal |
+| `input.image_count` | number | `InputEvent.images?.length` | Image count |
+
+---
+
+## Thread Span Rollups
 
 ### Turn Rollups
 
@@ -221,6 +234,17 @@ Emitted on `session_tree`.
 |-----------|------|-------------|
 | `models` | string | All models used (comma-sep) |
 | `model.switch_count` | number | Times model changed |
+
+### Thinking Rollups
+
+Thinking *content* is stored on **turn spans** only (truncated). The thread span stores only rollups/flags.
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `thinking.present` | boolean | Whether any turn had thinking blocks |
+| `thinking.turns_with_thinking` | number | Number of turns that included thinking blocks |
+| `thinking.block_count_total` | number | Total thinking blocks across all turns |
+| `thinking.total_length` | number | Total length of thinking text across all turns |
 
 ### Tool Aggregate Rollups
 
@@ -300,6 +324,9 @@ Pattern: `file.<path> = count`
 
 ## Turn Span Attributes
 
+Turn spans are named `Turn` and are direct children of the Thread span. Use `turn.index` to
+order them within the session/branch.
+
 ### Identity
 
 | Attribute | Type | Source | Description |
@@ -341,9 +368,20 @@ Pattern: `file.<path> = count`
 | `response.text_length` | number | computed | Full length |
 | `tool_results.count` | number | `event.toolResults.length` | Results received |
 
+### Thinking
+
+Thinking content blocks from the assistant message (if present). Truncated.
+
+| Attribute | Type | Source | Description |
+|-----------|------|--------|-------------|
+| `thinking.present` | boolean | computed | True if any thinking blocks present |
+| `thinking.block_count` | number | computed | Number of thinking blocks in this turn's assistant message |
+| `thinking.text` | string | extract from content | Thinking text (truncated) |
+| `thinking.text_length` | number | computed | Full thinking length |
+
 ### Turn Rollups
 
-Same pattern as main span, prefixed with `turn.`:
+Same pattern as thread span, prefixed with `turn.`:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
@@ -357,6 +395,8 @@ Same pattern as main span, prefixed with `turn.`:
 ---
 
 ## Tool Span Attributes
+
+Tool spans are named after the tool with the first letter capitalized (e.g., `Bash`, `Read`, `Edit`).
 
 ### Base (All Tools)
 
@@ -491,29 +531,38 @@ function extractCommand(cmd: string): string {
 
 ## Example Queries
 
-### Discovery (Main Span)
+### Discovery (Thread Span)
 
 ```sql
--- Prompts that touched a specific file
+-- Sessions/branches that touched a specific file
 WHERE file./src/index.ts > 0
 
--- Most common commands
+-- Most common commands in a session/branch
 GROUP BY bash.cmd.* ORDER BY count DESC
 
--- Expensive prompts
+-- Expensive sessions/branches
 WHERE cost.total > 0.10 ORDER BY cost.total DESC
 
--- Prompts with many file operations
+-- Sessions/branches with many file operations
 WHERE files.unique_count > 10
 
--- Failed prompts
+-- Failed sessions/branches
 WHERE status = "error"
 
--- Prompts using specific model
+-- Sessions/branches using specific model
 WHERE model.id = "claude-sonnet-4-20250514"
+```
 
--- Interactive vs automated
+### Input Analysis (Input Span)
+
+Input spans carry `input.*` attributes. Query them directly (or join to Thread spans by traceId).
+
+```sql
+-- Interactive vs automated prompts
 GROUP BY input.source
+
+-- Prompt text search
+WHERE input.text LIKE "%auth%"
 ```
 
 ### Turn Analysis
@@ -542,30 +591,36 @@ Once you find an interesting prompt/turn, drill into tool spans to see:
 ## Data Flow
 
 ```
-InputEvent
+SessionStartEvent (start Thread span)
     ↓
-BeforeAgentStartEvent (capture system_prompt)
+InputEvent (capture input)
     ↓
-AgentStartEvent (create main span, start rollup)
+BeforeAgentStartEvent (capture system_prompt → Thread attr)
     ↓
-┌─────────────────────────────────────────┐
-│ TurnStartEvent (create turn span)       │
-│     ↓                                   │
-│ ToolCallEvent (create tool span)        │
-│     ↓                                   │
-│ ToolResultEvent (end tool span,         │
-│                  update turn rollup)    │
-│     ↓                                   │
-│ TurnEndEvent (end turn span,            │
-│               update main rollup)       │
-└─────────────────────────────────────────┘
+AgentStartEvent (create Input span)
+    ↓
+┌──────────────────────────────────────────┐
+│ TurnStartEvent (create Turn span)        │
+│     ↓                                    │
+│ ToolCallEvent (create Tool span)         │
+│     ↓                                    │
+│ ToolResultEvent (end Tool span,          │
+│                  update turn rollup)     │
+│     ↓                                    │
+│ TurnEndEvent (end Turn span,             │
+│               update thread rollup)      │
+└──────────────────────────────────────────┘
     ↓ (repeat for each turn)
-AgentEndEvent (end main span, finalize rollups)
+AgentEndEvent (finalize rollups, flush)
+SessionSwitch/Tree/Fork (end Thread, start new Thread + link)
+SessionShutdown (end Thread, flush)
 ```
 
 ---
 
 ## State Management
+
+Thread-level rollups are tracked via `PromptRollup` (one per Thread span).
 
 ```typescript
 type PromptRollup = {
@@ -941,14 +996,13 @@ Batch flushed to destination
 |-------|--------|
 | `tool_result` | End tool span → buffer |
 | `turn_end` | End turn span → buffer |
-| `agent_end` | End main span → buffer → **flush immediately** |
 
 **Flush triggers (send buffer to destination):**
 | Trigger | Behavior |
 |---------|----------|
 | Buffer size reached | Flush when `spanBuffer.length >= batchSize` |
 | Flush interval elapsed | Flush every `flushIntervalMs` if buffer not empty |
-| `agent_end` | Flush immediately (natural boundary) |
+| `agent_end` | Flush immediately (Thread remains open; rollups updated) |
 | `session_shutdown` | Sync flush (blocking) |
 | Process signals | Sync flush (blocking), let pi handle exit |
 
@@ -1013,9 +1067,9 @@ function flushSync(): void {
 ### Event Handlers
 
 ```typescript
-// Flush on agent_end (prompt complete)
+// Flush on agent_end (prompt complete; Thread remains open)
 pi.on("agent_end", (event, ctx) => {
-  // ... end main span, buffer it ...
+  // ... update Thread rollups ...
   flush();  // immediate flush at natural boundary
 });
 

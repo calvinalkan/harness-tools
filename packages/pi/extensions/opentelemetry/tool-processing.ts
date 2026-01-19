@@ -80,7 +80,8 @@ function addToolSpanAttributes(span: Span, event: ToolResultEvent): void {
 	span.attributes["tool.input_length"] = inputJson.length;
 
 	const textContent = content.find((c) => c.type === "text");
-	const textValue = textContent !== undefined && "text" in textContent ? textContent.text : undefined;
+	const textValue =
+		textContent !== undefined && "text" in textContent ? textContent.text : undefined;
 	const outputText = typeof textValue === "string" ? textValue : undefined;
 
 	if (event.isError && outputText !== undefined) {

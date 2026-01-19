@@ -169,17 +169,25 @@ function spanToOTLP(span: Span): OTLPSpan {
 	const kindMap = { internal: 1, server: 2, client: 3 };
 	const statusMap = { unset: 0, ok: 1, error: 2 };
 
-	const attributes = Object.entries(span.attributes).map(([key, value]) => {
-		if (typeof value === "string") {
-			return { key, value: { stringValue: value } };
-		} else if (typeof value === "boolean") {
-			return { key, value: { boolValue: value } };
-		} else if (Number.isInteger(value)) {
-			return { key, value: { intValue: String(value) } };
-		} else {
-			return { key, value: { doubleValue: value } };
-		}
-	});
+	const toAttributes = (
+		attrs: Record<string, string | number | boolean>,
+	): Array<{
+		key: string;
+		value: { stringValue?: string; intValue?: string; doubleValue?: number; boolValue?: boolean };
+	}> =>
+		Object.entries(attrs).map(([key, value]) => {
+			if (typeof value === "string") {
+				return { key, value: { stringValue: value } };
+			} else if (typeof value === "boolean") {
+				return { key, value: { boolValue: value } };
+			} else if (Number.isInteger(value)) {
+				return { key, value: { intValue: String(value) } };
+			} else {
+				return { key, value: { doubleValue: value } };
+			}
+		});
+
+	const attributes = toAttributes(span.attributes);
 
 	const otlpSpan: OTLPSpan = {
 		traceId: span.traceId,
@@ -193,6 +201,30 @@ function spanToOTLP(span: Span): OTLPSpan {
 	};
 	if (span.parentSpanId !== undefined) {
 		otlpSpan.parentSpanId = span.parentSpanId;
+	}
+	if (span.links && span.links.length > 0) {
+		otlpSpan.links = span.links.map((link) => {
+			const otlpLink: {
+				traceId: string;
+				spanId: string;
+				attributes?: Array<{
+					key: string;
+					value: {
+						stringValue?: string;
+						intValue?: string;
+						doubleValue?: number;
+						boolValue?: boolean;
+					};
+				}>;
+			} = {
+				traceId: link.traceId,
+				spanId: link.spanId,
+			};
+			if (link.attributes) {
+				otlpLink.attributes = toAttributes(link.attributes);
+			}
+			return otlpLink;
+		});
 	}
 	return otlpSpan;
 }

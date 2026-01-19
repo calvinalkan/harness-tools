@@ -5,9 +5,10 @@
  * See SPEC.md for full specification.
  *
  * Hierarchy:
- *   Main Span (prompt) [main=true]
- *     └─ Turn Span (turn-N)
- *          └─ Tool Span (tool:name)
+ *   Thread Span (Thread) [main=true]
+ *     ├─ Input Span (Input)
+ *     └─ Turn Span (Turn)
+ *          └─ Tool Span (Bash/Read/Edit/...)
  *
  * Configuration (in order of priority, highest first):
  *
@@ -74,17 +75,19 @@ import {
 const configManager = createConfigManager();
 
 let sessionId: string | null = null;
-let currentPromptSpan: Span | null = null;
-let currentTurnSpan: Span | null = null;
-let currentPromptRollup: PromptRollup | null = null;
-let currentTurnRollup: TurnRollup | null = null;
+let currentThreadSpan: Span | null = null;
+let currentThreadRollup: PromptRollup | null = null;
+const openTurns: Array<{ span: Span; rollup: TurnRollup }> = [];
 let currentModel: { provider: string; id: string } | null = null;
 let lastModel: { provider: string; id: string } | null = null;
 
 let capturedInput: { text: string; images: unknown[] | undefined; source: string } | null = null;
 let capturedSystemPrompt: string | null = null;
 
-const openToolSpans = new Map<string, { span: Span; startTime: number }>();
+const openToolSpans = new Map<
+	string,
+	{ span: Span; startTime: number; turnRollup: TurnRollup | null }
+>();
 
 const exporter = createSpanExporter({
 	getConfig: configManager.getConfig,
@@ -97,7 +100,7 @@ const exporter = createSpanExporter({
 
 function createSpan(name: string, parentSpanId?: string, traceId?: string): Span {
 	const span: Span = {
-		traceId: traceId ?? currentPromptSpan?.traceId ?? genTraceId(),
+		traceId: traceId ?? currentThreadSpan?.traceId ?? genTraceId(),
 		spanId: genSpanId(),
 		name,
 		kind: "internal",
@@ -135,6 +138,149 @@ function endSpan(span: Span, status: "ok" | "error" = "ok"): void {
 	exporter.bufferSpan(span);
 }
 
+function formatToolSpanName(toolName: string): string {
+	if (toolName.length === 0) {
+		return "Tool";
+	}
+	return `${toolName[0]?.toUpperCase() ?? ""}${toolName.slice(1)}`;
+}
+
+type ThreadSpanContext = { traceId: string; spanId: string };
+
+type ThreadLinkInfo = ThreadSpanContext & { relation: string };
+
+function startThread(ctx: ExtensionContext, link?: ThreadLinkInfo): void {
+	const traceId = genTraceId();
+	const span = createSpan("Thread", undefined, traceId);
+	if (link) {
+		span.links = [
+			{
+				traceId: link.traceId,
+				spanId: link.spanId,
+				attributes: { "link.relation": link.relation },
+			},
+		];
+	}
+
+	currentThreadSpan = span;
+	currentThreadRollup = createPromptRollup();
+	currentModel = null;
+	lastModel = null;
+	openTurns.length = 0;
+
+	const header = ctx.sessionManager.getHeader();
+	sessionId = header?.id ?? null;
+
+	span.attributes["main"] = true;
+	span.attributes["session.id"] = sessionId ?? "";
+	span.attributes["session.name"] = ctx.sessionManager.getSessionName() ?? "";
+	const parentSessionId = getSessionIdFromPath(header?.parentSession);
+	if (parentSessionId !== undefined) {
+		span.attributes["session.parent_id"] = parentSessionId;
+	}
+	span.attributes["service.name"] = "pi-coding-agent";
+
+	span.attributes["pi.version"] = VERSION;
+	span.attributes["cwd"] = ctx.cwd;
+	span.attributes["has_ui"] = ctx.hasUI;
+	span.attributes["os.platform"] = process.platform;
+	span.attributes["os.arch"] = process.arch;
+	const bunVersion = process.versions["bun"];
+	span.attributes["runtime.name"] = typeof bunVersion === "string" ? "bun" : "node";
+	span.attributes["runtime.version"] =
+		typeof bunVersion === "string" ? bunVersion : process.version;
+
+	const { info: git, cacheHit } = getGitInfoCached(ctx.cwd);
+	span.attributes["git.cache_hit"] = cacheHit;
+	if (git.branch !== undefined && git.branch !== "") {
+		span.attributes["git.branch"] = git.branch;
+	}
+	if (git.commit !== undefined && git.commit !== "") {
+		span.attributes["git.commit"] = git.commit;
+	}
+	if (git.commitShort !== undefined && git.commitShort !== "") {
+		span.attributes["git.commit_short"] = git.commitShort;
+	}
+	if (git.worktree !== undefined && git.worktree !== "") {
+		span.attributes["git.worktree"] = git.worktree;
+	}
+	if (git.commonDir !== undefined && git.commonDir !== "") {
+		span.attributes["git.common_dir"] = git.commonDir;
+	}
+	if (git.remoteUrl !== undefined && git.remoteUrl !== "") {
+		span.attributes["git.remote_url"] = git.remoteUrl;
+	}
+	if (git.repoName !== undefined && git.repoName !== "") {
+		span.attributes["git.repo_name"] = git.repoName;
+	}
+	if (git.userName !== undefined && git.userName !== "") {
+		span.attributes["git.user.name"] = git.userName;
+	}
+	if (git.userEmail !== undefined && git.userEmail !== "") {
+		span.attributes["git.user.email"] = git.userEmail;
+	}
+
+	if (ctx.model !== undefined) {
+		currentModel = { provider: ctx.model.provider, id: ctx.model.id };
+		lastModel = currentModel;
+		span.attributes["model.provider"] = ctx.model.provider;
+		span.attributes["model.id"] = ctx.model.id;
+		span.attributes["model.name"] = ctx.model.name ?? ctx.model.id;
+		span.attributes["model.reasoning"] = ctx.model.reasoning ?? false;
+		span.attributes["model.context_window"] = ctx.model.contextWindow ?? 0;
+		span.attributes["model.max_tokens"] = ctx.model.maxTokens ?? 0;
+		const modelForOAuth = ctx.model as Model<Api> | undefined;
+		if (isApiModel(modelForOAuth)) {
+			span.attributes["model.using_oauth"] = ctx.modelRegistry.isUsingOAuth(modelForOAuth);
+		}
+		span.attributes["model.supports_images"] = ctx.model.input?.includes("image") ?? false;
+		const cost = ctx.model.cost;
+		if (cost !== undefined) {
+			span.attributes["model.cost.input"] = cost.input ?? 0;
+			span.attributes["model.cost.output"] = cost.output ?? 0;
+		}
+		currentThreadRollup.models.add(modelKey(ctx.model.provider, ctx.model.id));
+	}
+}
+
+function endThread(status: "ok" | "error"): ThreadSpanContext | null {
+	if (currentThreadSpan === null || currentThreadRollup === null) {
+		currentModel = null;
+		lastModel = null;
+		openTurns.length = 0;
+		openToolSpans.clear();
+		capturedInput = null;
+		capturedSystemPrompt = null;
+		return null;
+	}
+
+	for (const { span, rollup } of openTurns) {
+		applyTurnRollupToSpan(span, rollup);
+		endSpan(span, "error");
+	}
+	openTurns.length = 0;
+
+	for (const { span } of openToolSpans.values()) {
+		endSpan(span, "error");
+	}
+	openToolSpans.clear();
+
+	const span = currentThreadSpan;
+	const rollup = currentThreadRollup;
+	applyPromptRollupToSpan(span, rollup);
+	span.attributes["status"] = status;
+	endSpan(span, status);
+
+	const context: ThreadSpanContext = { traceId: span.traceId, spanId: span.spanId };
+	currentThreadSpan = null;
+	currentThreadRollup = null;
+	currentModel = null;
+	lastModel = null;
+	capturedInput = null;
+	capturedSystemPrompt = null;
+	return context;
+}
+
 // Type guard to satisfy strict lint rules for Model<any> -> Model<Api>
 function isApiModel(model: Model<Api> | undefined): model is Model<Api> {
 	return model !== undefined;
@@ -153,13 +299,22 @@ export default function opentelemetryExtension(pi: ExtensionAPI): void {
 		// Apply project-level config now that we have cwd
 		configManager.applyProjectConfig(ctx.cwd);
 
-		const header = ctx.sessionManager.getHeader();
-		sessionId = header?.id ?? null;
+		startThread(ctx);
+	});
+
+	pi.on("session_switch", (event, ctx) => {
+		const previousThread = endThread("ok");
+		const link =
+			event.reason === "resume" && previousThread
+				? { ...previousThread, relation: "resume" }
+				: undefined;
+		startThread(ctx, link);
 	});
 
 	pi.on("session_fork", (event, ctx) => {
-		const header = ctx.sessionManager.getHeader();
-		sessionId = header?.id ?? null;
+		const previousThread = endThread("ok");
+		const link = previousThread ? { ...previousThread, relation: "fork" } : undefined;
+		startThread(ctx, link);
 
 		const span = createSessionEventSpan("session.fork", ctx);
 		const previousSessionId = getSessionIdFromPath(event.previousSessionFile);
@@ -170,6 +325,26 @@ export default function opentelemetryExtension(pi: ExtensionAPI): void {
 	});
 
 	pi.on("session_tree", (event, ctx) => {
+		const previousThread = endThread("ok");
+		const link = previousThread ? { ...previousThread, relation: "tree" } : undefined;
+		startThread(ctx, link);
+
+		if (currentThreadSpan !== null) {
+			if (event.oldLeafId !== null) {
+				currentThreadSpan.attributes["thread.branch.old_leaf_id"] = event.oldLeafId;
+			}
+			if (event.newLeafId !== null) {
+				currentThreadSpan.attributes["thread.branch.new_leaf_id"] = event.newLeafId;
+			}
+			if (event.summaryEntry !== undefined) {
+				currentThreadSpan.attributes["thread.branch.summary_entry_id"] = event.summaryEntry.id;
+				currentThreadSpan.attributes["thread.branch.summary_from_id"] = event.summaryEntry.fromId;
+			}
+			if (event.fromExtension !== undefined) {
+				currentThreadSpan.attributes["thread.branch.from_extension"] = event.fromExtension;
+			}
+		}
+
 		const span = createSessionEventSpan("session.tree", ctx);
 		if (event.oldLeafId !== null) {
 			span.attributes["session.tree.old_leaf_id"] = event.oldLeafId;
@@ -197,120 +372,87 @@ export default function opentelemetryExtension(pi: ExtensionAPI): void {
 
 	pi.on("before_agent_start", (event) => {
 		capturedSystemPrompt = event.systemPrompt;
+		if (currentThreadSpan !== null && currentThreadSpan.attributes["system_prompt"] === undefined) {
+			const { text, length } = truncate(event.systemPrompt, MAX_TEXT_LENGTH);
+			currentThreadSpan.attributes["system_prompt"] = text;
+			currentThreadSpan.attributes["system_prompt_length"] = length;
+			capturedSystemPrompt = null;
+		}
 	});
 
 	pi.on("agent_start", (_event, ctx) => {
-		const traceId = genTraceId();
-		currentPromptSpan = createSpan("prompt", undefined, traceId);
-		currentPromptRollup = createPromptRollup();
-
-		const span = currentPromptSpan;
-
-		span.attributes["main"] = true;
-		span.attributes["session.id"] = sessionId ?? "";
-		span.attributes["session.name"] = ctx.sessionManager.getSessionName() ?? "";
-		const header = ctx.sessionManager.getHeader();
-		const parentSessionId = getSessionIdFromPath(header?.parentSession);
-		if (parentSessionId !== undefined) {
-			span.attributes["session.parent_id"] = parentSessionId;
+		if (currentThreadSpan === null || currentThreadRollup === null) {
+			startThread(ctx);
 		}
-		span.attributes["service.name"] = "pi-coding-agent";
-
-		span.attributes["pi.version"] = VERSION;
-		span.attributes["cwd"] = ctx.cwd;
-		span.attributes["has_ui"] = ctx.hasUI;
-		span.attributes["os.platform"] = process.platform;
-		span.attributes["os.arch"] = process.arch;
-		const bunVersion = process.versions["bun"];
-		span.attributes["runtime.name"] = typeof bunVersion === "string" ? "bun" : "node";
-		span.attributes["runtime.version"] =
-			typeof bunVersion === "string" ? bunVersion : process.version;
-
-		const { info: git, cacheHit } = getGitInfoCached(ctx.cwd);
-		span.attributes["git.cache_hit"] = cacheHit;
-		if (git.branch !== undefined && git.branch !== "") {
-			span.attributes["git.branch"] = git.branch;
-		}
-		if (git.commit !== undefined && git.commit !== "") {
-			span.attributes["git.commit"] = git.commit;
-		}
-		if (git.commitShort !== undefined && git.commitShort !== "") {
-			span.attributes["git.commit_short"] = git.commitShort;
-		}
-		if (git.worktree !== undefined && git.worktree !== "") {
-			span.attributes["git.worktree"] = git.worktree;
-		}
-		if (git.commonDir !== undefined && git.commonDir !== "") {
-			span.attributes["git.common_dir"] = git.commonDir;
-		}
-		if (git.remoteUrl !== undefined && git.remoteUrl !== "") {
-			span.attributes["git.remote_url"] = git.remoteUrl;
-		}
-		if (git.repoName !== undefined && git.repoName !== "") {
-			span.attributes["git.repo_name"] = git.repoName;
-		}
-		if (git.userName !== undefined && git.userName !== "") {
-			span.attributes["git.user.name"] = git.userName;
-		}
-		if (git.userEmail !== undefined && git.userEmail !== "") {
-			span.attributes["git.user.email"] = git.userEmail;
-		}
-
-		if (capturedInput !== null) {
-			span.attributes["input.source"] = capturedInput.source;
-			const { text, length } = truncate(capturedInput.text, MAX_TEXT_LENGTH);
-			span.attributes["input.text"] = text;
-			span.attributes["input.text_length"] = length;
-			const imageCount = capturedInput.images?.length ?? 0;
-			span.attributes["input.has_images"] = imageCount > 0;
-			span.attributes["input.image_count"] = imageCount;
-		}
-
-		if (capturedSystemPrompt !== null) {
-			const { text, length } = truncate(capturedSystemPrompt, MAX_TEXT_LENGTH);
-			span.attributes["system_prompt"] = text;
-			span.attributes["system_prompt_length"] = length;
-		}
-
-		if (ctx.model !== undefined) {
-			currentModel = { provider: ctx.model.provider, id: ctx.model.id };
-			lastModel = currentModel;
-			span.attributes["model.provider"] = ctx.model.provider;
-			span.attributes["model.id"] = ctx.model.id;
-			span.attributes["model.name"] = ctx.model.name ?? ctx.model.id;
-			span.attributes["model.reasoning"] = ctx.model.reasoning ?? false;
-			span.attributes["model.context_window"] = ctx.model.contextWindow ?? 0;
-			span.attributes["model.max_tokens"] = ctx.model.maxTokens ?? 0;
-			const modelForOAuth = ctx.model as Model<Api> | undefined;
-			if (isApiModel(modelForOAuth)) {
-				span.attributes["model.using_oauth"] = ctx.modelRegistry.isUsingOAuth(modelForOAuth);
-			}
-			span.attributes["model.supports_images"] = ctx.model.input?.includes("image") ?? false;
-			const cost = ctx.model.cost;
-			if (cost !== undefined) {
-				span.attributes["model.cost.input"] = cost.input ?? 0;
-				span.attributes["model.cost.output"] = cost.output ?? 0;
-			}
-			currentPromptRollup.models.add(modelKey(ctx.model.provider, ctx.model.id));
-		}
-
-		const activeTools = new Set(pi.getActiveTools());
-		span.attributes["tools.active.count"] = activeTools.size;
-		for (const toolName of activeTools) {
-			span.attributes[`tools.active.${toolName}`] = true;
-		}
-
-		const thinkingLevel = pi.getThinkingLevel();
-		span.attributes["thinking.level"] = thinkingLevel;
-	});
-
-	pi.on("agent_end", (event, ctx) => {
-		if (currentPromptSpan === null || currentPromptRollup === null) {
+		if (currentThreadSpan === null || currentThreadRollup === null) {
 			return;
 		}
 
-		const span = currentPromptSpan;
-		const rollup = currentPromptRollup;
+		if (
+			capturedSystemPrompt !== null &&
+			currentThreadSpan.attributes["system_prompt"] === undefined
+		) {
+			const { text, length } = truncate(capturedSystemPrompt, MAX_TEXT_LENGTH);
+			currentThreadSpan.attributes["system_prompt"] = text;
+			currentThreadSpan.attributes["system_prompt_length"] = length;
+			capturedSystemPrompt = null;
+		}
+
+		if (ctx.model !== undefined && currentThreadSpan.attributes["model.provider"] === undefined) {
+			currentModel = { provider: ctx.model.provider, id: ctx.model.id };
+			lastModel = currentModel;
+			currentThreadSpan.attributes["model.provider"] = ctx.model.provider;
+			currentThreadSpan.attributes["model.id"] = ctx.model.id;
+			currentThreadSpan.attributes["model.name"] = ctx.model.name ?? ctx.model.id;
+			currentThreadSpan.attributes["model.reasoning"] = ctx.model.reasoning ?? false;
+			currentThreadSpan.attributes["model.context_window"] = ctx.model.contextWindow ?? 0;
+			currentThreadSpan.attributes["model.max_tokens"] = ctx.model.maxTokens ?? 0;
+			const modelForOAuth = ctx.model as Model<Api> | undefined;
+			if (isApiModel(modelForOAuth)) {
+				currentThreadSpan.attributes["model.using_oauth"] =
+					ctx.modelRegistry.isUsingOAuth(modelForOAuth);
+			}
+			currentThreadSpan.attributes["model.supports_images"] =
+				ctx.model.input?.includes("image") ?? false;
+			const cost = ctx.model.cost;
+			if (cost !== undefined) {
+				currentThreadSpan.attributes["model.cost.input"] = cost.input ?? 0;
+				currentThreadSpan.attributes["model.cost.output"] = cost.output ?? 0;
+			}
+			currentThreadRollup.models.add(modelKey(ctx.model.provider, ctx.model.id));
+		}
+
+		if (capturedInput !== null) {
+			const inputSpan = createSpan("Input", currentThreadSpan.spanId, currentThreadSpan.traceId);
+			inputSpan.attributes["input.source"] = capturedInput.source;
+			const { text, length } = truncate(capturedInput.text, MAX_TEXT_LENGTH);
+			inputSpan.attributes["input.text"] = text;
+			inputSpan.attributes["input.text_length"] = length;
+			const imageCount = capturedInput.images?.length ?? 0;
+			inputSpan.attributes["input.has_images"] = imageCount > 0;
+			inputSpan.attributes["input.image_count"] = imageCount;
+			endSpan(inputSpan, "ok");
+			capturedInput = null;
+		}
+
+		if (currentThreadSpan.attributes["tools.active.count"] === undefined) {
+			const activeTools = new Set(pi.getActiveTools());
+			currentThreadSpan.attributes["tools.active.count"] = activeTools.size;
+			for (const toolName of activeTools) {
+				currentThreadSpan.attributes[`tools.active.${toolName}`] = true;
+			}
+		}
+
+		currentThreadSpan.attributes["thinking.level"] = pi.getThinkingLevel();
+	});
+
+	pi.on("agent_end", (event, ctx) => {
+		if (currentThreadSpan === null || currentThreadRollup === null) {
+			return;
+		}
+
+		const span = currentThreadSpan;
+		const rollup = currentThreadRollup;
 
 		let finalStopReason: string | undefined;
 		if (event.messages !== undefined) {
@@ -349,10 +491,7 @@ export default function opentelemetryExtension(pi: ExtensionAPI): void {
 
 		const status = aborted ? "error" : "ok";
 		span.attributes["status"] = status;
-		endSpan(span, status);
 
-		currentPromptSpan = null;
-		currentPromptRollup = null;
 		capturedInput = null;
 		capturedSystemPrompt = null;
 
@@ -360,7 +499,7 @@ export default function opentelemetryExtension(pi: ExtensionAPI): void {
 	});
 
 	pi.on("turn_start", (event, ctx) => {
-		if (currentPromptSpan === null || currentPromptRollup === null) {
+		if (currentThreadSpan === null || currentThreadRollup === null) {
 			return;
 		}
 
@@ -370,21 +509,18 @@ export default function opentelemetryExtension(pi: ExtensionAPI): void {
 				lastModel !== null &&
 				(lastModel.provider !== newModel.provider || lastModel.id !== newModel.id)
 			) {
-				currentPromptRollup.modelSwitchCount++;
+				currentThreadRollup.modelSwitchCount++;
 			}
 			currentModel = newModel;
 			lastModel = newModel;
-			currentPromptRollup.models.add(modelKey(newModel.provider, newModel.id));
+			currentThreadRollup.models.add(modelKey(newModel.provider, newModel.id));
 		}
 
-		currentTurnSpan = createSpan(
-			`turn-${String(event.turnIndex)}`,
-			currentPromptSpan.spanId,
-			currentPromptSpan.traceId,
-		);
-		currentTurnRollup = createTurnRollup();
+		const turnSpan = createSpan("Turn", currentThreadSpan.spanId, currentThreadSpan.traceId);
+		const turnRollup = createTurnRollup();
+		openTurns.push({ span: turnSpan, rollup: turnRollup });
 
-		const span = currentTurnSpan;
+		const span = turnSpan;
 		span.attributes["turn.index"] = event.turnIndex;
 		span.attributes["turn.timestamp"] = event.timestamp;
 		span.attributes["cwd"] = ctx.cwd;
@@ -396,16 +532,22 @@ export default function opentelemetryExtension(pi: ExtensionAPI): void {
 
 		span.attributes["thinking.level"] = pi.getThinkingLevel();
 
-		currentPromptRollup.turnCount++;
+		currentThreadRollup.turnCount++;
 	});
 
 	pi.on("turn_end", (event) => {
-		if (currentTurnSpan === null || currentPromptRollup === null) {
+		if (openTurns.length === 0 || currentThreadRollup === null) {
 			return;
 		}
 
-		const span = currentTurnSpan;
-		const rollup = currentPromptRollup;
+		const turnEntry = openTurns.pop();
+		if (turnEntry === undefined) {
+			return;
+		}
+
+		const span = turnEntry.span;
+		const rollup = currentThreadRollup;
+		const turnRollup = turnEntry.rollup;
 
 		if (event.message.role === "assistant" && "usage" in event.message) {
 			const usage = event.message.usage;
@@ -423,7 +565,12 @@ export default function opentelemetryExtension(pi: ExtensionAPI): void {
 		}
 
 		if (event.message.role === "assistant" && "content" in event.message) {
-			const content = event.message.content as Array<{ type: string; text?: string }>;
+			const content = event.message.content as Array<{
+				type: string;
+				text?: string;
+				thinking?: string;
+			}>;
+
 			const textParts = content.filter((c) => c.type === "text" && typeof c.text === "string");
 			if (textParts.length > 0) {
 				const fullText = textParts.map((c) => c.text ?? "").join("");
@@ -431,49 +578,81 @@ export default function opentelemetryExtension(pi: ExtensionAPI): void {
 				span.attributes["response.text"] = text;
 				span.attributes["response.text_length"] = length;
 			}
+
+			const thinkingParts = content.filter(
+				(c) => c.type === "thinking" && typeof c.thinking === "string",
+			);
+			if (thinkingParts.length > 0) {
+				const fullThinking = thinkingParts.map((c) => c.thinking ?? "").join("");
+				const { text, length } = truncate(fullThinking, MAX_TEXT_LENGTH);
+				span.attributes["thinking.present"] = true;
+				span.attributes["thinking.block_count"] = thinkingParts.length;
+				span.attributes["thinking.text"] = text;
+				span.attributes["thinking.text_length"] = length;
+
+				rollup.thinkingTurnsWithThinking++;
+				rollup.thinkingBlockCount += thinkingParts.length;
+				rollup.thinkingTotalLength += length;
+			}
 		}
 
 		span.attributes["tool_results.count"] = event.toolResults.length;
 
-		if (currentTurnRollup !== null) {
-			applyTurnRollupToSpan(span, currentTurnRollup);
-		}
+		applyTurnRollupToSpan(span, turnRollup);
 
 		const duration = nowMs() - span.startTimeMs;
 		rollup.turnDurations.push(duration);
 
 		endSpan(span, "ok");
-		currentTurnSpan = null;
-		currentTurnRollup = null;
 	});
 
 	pi.on("model_select", (event) => {
-		if (currentPromptRollup === null) {
+		if (currentThreadRollup === null) {
 			return;
 		}
 
 		const newKey = modelKey(event.model.provider, event.model.id);
-		currentPromptRollup.models.add(newKey);
+		currentThreadRollup.models.add(newKey);
 
 		if (event.previousModel !== undefined) {
 			const oldKey = modelKey(event.previousModel.provider, event.previousModel.id);
 			if (oldKey !== newKey) {
-				currentPromptRollup.modelSwitchCount++;
+				currentThreadRollup.modelSwitchCount++;
 			}
 		}
 
 		currentModel = { provider: event.model.provider, id: event.model.id };
+		lastModel = currentModel;
+
+		if (currentThreadSpan !== null) {
+			currentThreadSpan.attributes["model.provider"] = event.model.provider;
+			currentThreadSpan.attributes["model.id"] = event.model.id;
+			currentThreadSpan.attributes["model.name"] = event.model.name ?? event.model.id;
+			currentThreadSpan.attributes["model.reasoning"] = event.model.reasoning ?? false;
+			currentThreadSpan.attributes["model.context_window"] = event.model.contextWindow ?? 0;
+			currentThreadSpan.attributes["model.max_tokens"] = event.model.maxTokens ?? 0;
+			currentThreadSpan.attributes["model.supports_images"] =
+				event.model.input?.includes("image") ?? false;
+			const cost = event.model.cost;
+			if (cost !== undefined) {
+				currentThreadSpan.attributes["model.cost.input"] = cost.input ?? 0;
+				currentThreadSpan.attributes["model.cost.output"] = cost.output ?? 0;
+			}
+		}
 	});
 
 	pi.on("tool_call", (event, ctx) => {
-		if (currentTurnSpan === null) {
+		const activeTurn = openTurns.at(-1);
+		if (activeTurn === undefined) {
 			return;
 		}
 
+		const { span: turnSpan, rollup: turnRollup } = activeTurn;
+
 		const toolSpan = createSpan(
-			`tool:${event.toolName}`,
-			currentTurnSpan.spanId,
-			currentTurnSpan.traceId,
+			formatToolSpanName(event.toolName),
+			turnSpan.spanId,
+			turnSpan.traceId,
 		);
 		toolSpan.attributes["tool.name"] = event.toolName;
 		toolSpan.attributes["tool.call_id"] = event.toolCallId;
@@ -486,16 +665,18 @@ export default function opentelemetryExtension(pi: ExtensionAPI): void {
 
 		toolSpan.attributes["thinking.level"] = pi.getThinkingLevel();
 
-		openToolSpans.set(event.toolCallId, { span: toolSpan, startTime: nowMs() });
+		openToolSpans.set(event.toolCallId, {
+			span: toolSpan,
+			startTime: nowMs(),
+			turnRollup,
+		});
 
-		if (currentPromptRollup !== null) {
-			currentPromptRollup.toolCount++;
-			incrementMap(currentPromptRollup.toolCounts, event.toolName);
+		if (currentThreadRollup !== null) {
+			currentThreadRollup.toolCount++;
+			incrementMap(currentThreadRollup.toolCounts, event.toolName);
 		}
-		if (currentTurnRollup !== null) {
-			currentTurnRollup.toolCount++;
-			incrementMap(currentTurnRollup.toolCounts, event.toolName);
-		}
+		turnRollup.toolCount++;
+		incrementMap(turnRollup.toolCounts, event.toolName);
 	});
 
 	pi.on("tool_result", (event) => {
@@ -504,7 +685,7 @@ export default function opentelemetryExtension(pi: ExtensionAPI): void {
 			return;
 		}
 
-		const { span, startTime } = entry;
+		const { span, startTime, turnRollup } = entry;
 		openToolSpans.delete(event.toolCallId);
 
 		const duration = nowMs() - startTime;
@@ -513,32 +694,32 @@ export default function opentelemetryExtension(pi: ExtensionAPI): void {
 		addToolSpanAttributes(span, event);
 
 		const isError = event.isError;
-		if (currentPromptRollup !== null) {
+		if (currentThreadRollup !== null) {
 			if (isError) {
-				currentPromptRollup.toolErrorCount++;
-				incrementMap(currentPromptRollup.toolErrors, event.toolName);
+				currentThreadRollup.toolErrorCount++;
+				incrementMap(currentThreadRollup.toolErrors, event.toolName);
 			}
-			currentPromptRollup.toolTotalDurationMs += duration;
-			incrementMap(currentPromptRollup.toolDurations, event.toolName, duration);
-			processToolResult(event, currentPromptRollup, currentTurnRollup);
+			currentThreadRollup.toolTotalDurationMs += duration;
+			incrementMap(currentThreadRollup.toolDurations, event.toolName, duration);
+			processToolResult(event, currentThreadRollup, turnRollup);
 		}
-		if (currentTurnRollup !== null && isError) {
-			currentTurnRollup.toolErrorCount++;
+		if (turnRollup !== null && isError) {
+			turnRollup.toolErrorCount++;
 		}
 
 		endSpan(span, isError ? "error" : "ok");
 	});
 
 	pi.on("session_compact", (event, ctx) => {
-		if (currentPromptRollup === null) {
+		if (currentThreadRollup === null) {
 			return;
 		}
 
-		currentPromptRollup.compactionOccurred = true;
-		currentPromptRollup.compactionFromExtension = event.fromExtension;
+		currentThreadRollup.compactionOccurred = true;
+		currentThreadRollup.compactionFromExtension = event.fromExtension;
 		const contextUsage = ctx.getContextUsage();
 		if (contextUsage !== undefined) {
-			currentPromptRollup.compactionTokensBefore = contextUsage.tokens;
+			currentThreadRollup.compactionTokensBefore = contextUsage.tokens;
 		}
 	});
 
@@ -546,28 +727,11 @@ export default function opentelemetryExtension(pi: ExtensionAPI): void {
 		// Reset project config flag for next session
 		configManager.resetProjectConfig();
 
-		if (currentTurnSpan !== null) {
-			if (currentTurnRollup !== null) {
-				applyTurnRollupToSpan(currentTurnSpan, currentTurnRollup);
-			}
-			endSpan(currentTurnSpan, "error");
-			currentTurnSpan = null;
-			currentTurnRollup = null;
+		if (currentThreadSpan !== null) {
+			currentThreadSpan.attributes["status"] = "error";
+			currentThreadSpan.attributes["aborted"] = true;
 		}
-		if (currentPromptSpan !== null) {
-			if (currentPromptRollup !== null) {
-				currentPromptSpan.attributes["status"] = "error";
-				currentPromptSpan.attributes["aborted"] = true;
-				applyPromptRollupToSpan(currentPromptSpan, currentPromptRollup);
-			}
-			endSpan(currentPromptSpan, "error");
-			currentPromptSpan = null;
-			currentPromptRollup = null;
-		}
-		for (const { span } of openToolSpans.values()) {
-			endSpan(span, "error");
-		}
-		openToolSpans.clear();
+		endThread("error");
 
 		exporter.flushSync();
 	});

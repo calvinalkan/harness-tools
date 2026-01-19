@@ -99,7 +99,7 @@ PI_TELEMETRY_EXPORT=http://localhost:4318/v1/traces pi
 # Or test manually with curl
 curl -X POST http://localhost:4318/v1/traces \
   -H "Content-Type: application/json" \
-  -d '{"resourceSpans":[{"resource":{"attributes":[]},"scopeSpans":[{"scope":{"name":"test","version":"1.0"},"spans":[{"traceId":"abc","spanId":"123","name":"main","kind":1,"startTimeUnixNano":"1705600000000000000","endTimeUnixNano":"1705600001000000000","attributes":[{"key":"main","value":{"boolValue":true}}],"status":{"code":1}}]}]}]}'
+  -d '{"resourceSpans":[{"resource":{"attributes":[]},"scopeSpans":[{"scope":{"name":"test","version":"1.0"},"spans":[{"traceId":"abc","spanId":"123","name":"Thread","kind":1,"startTimeUnixNano":"1705600000000000000","endTimeUnixNano":"1705600001000000000","attributes":[{"key":"main","value":{"boolValue":true}}],"status":{"code":1}}]}]}]}'
 ```
 
 ### 2. Unix Socket Export
@@ -112,7 +112,7 @@ tmux new-session -d -s otel "bun tools/otel-test-receiver.ts -v"
 PI_TELEMETRY_EXPORT=unix:///tmp/otel.sock pi
 
 # Or test manually with nc
-echo '{"resourceSpans":[{"resource":{"attributes":[]},"scopeSpans":[{"scope":{"name":"test","version":"1.0"},"spans":[{"traceId":"abc","spanId":"123","name":"main","kind":1,"startTimeUnixNano":"1705600000000000000","endTimeUnixNano":"1705600001000000000","attributes":[{"key":"main","value":{"boolValue":true}}],"status":{"code":1}}]}]}]}' | nc -U -q0 /tmp/otel.sock
+echo '{"resourceSpans":[{"resource":{"attributes":[]},"scopeSpans":[{"scope":{"name":"test","version":"1.0"},"spans":[{"traceId":"abc","spanId":"123","name":"Thread","kind":1,"startTimeUnixNano":"1705600000000000000","endTimeUnixNano":"1705600001000000000","attributes":[{"key":"main","value":{"boolValue":true}}],"status":{"code":1}}]}]}]}' | nc -U -q0 /tmp/otel.sock
 ```
 
 ### 3. File Export
@@ -135,23 +135,23 @@ echo '{"resourceSpans":[...]}' >> ~/.pi/agent/telemetry/test.otlp.jsonl
 ### Normal Output
 
 ```
-━━━ MAIN SPAN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━ THREAD SPAN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 17:46:40.000 ✓ 3.20s
   session: sess_abc123
   model: claude-sonnet-4-20250514
-  input: "fix the authentication bug in auth.ts"
   turns: 2 tools: 4
   cost: $0.0234
 
+  ├── INPUT (interactive) "fix the authentication bug in auth.ts" (5ms) ✓
   ├── TURN 0 (1.80s) ✓
   │   tokens: 1200 in / 450 out | stop: tool_use
-    │   🔧 read /src/auth.ts (20ms) ✓
-    │   🔧 bash: grep -r "login" src/ (150ms) ✓
+  │   🔧 Read /src/auth.ts (20ms) ✓
+  │   🔧 Bash: grep -r "login" src/ (150ms) ✓
 
   ├── TURN 1 (1.40s) ✓
   │   tokens: 800 in / 320 out | stop: stop
-    │   🔧 edit /src/auth.ts (30ms) ✓
-    │   🔧 bash: bun test (800ms) ✓
+  │   🔧 Edit /src/auth.ts (30ms) ✓
+  │   🔧 Bash: bun test (800ms) ✓
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -160,7 +160,7 @@ echo '{"resourceSpans":[...]}' >> ~/.pi/agent/telemetry/test.otlp.jsonl
 Adds all attributes after each span:
 
 ```
-━━━ MAIN SPAN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━ THREAD SPAN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 17:46:40.000 ✓ 3.20s
   session: sess_abc123
   model: claude-sonnet-4-20250514
@@ -179,6 +179,11 @@ Adds all attributes after each span:
     bash.cmd.grep: 1
     bash.cmd.bun.test: 1
     ...
+
+  ├── INPUT (interactive) "fix the authentication bug in auth.ts" (5ms) ✓
+    Attributes:
+      input.text: "fix the authentication bug in auth.ts"
+      input.source: "interactive"
 ```
 
 ### Status Icons
@@ -194,12 +199,11 @@ Adds all attributes after each span:
 
 Use this checklist to verify the extension implements the spec correctly:
 
-### Main Span Attributes
+### Thread Span Attributes
 
 - [ ] `main` = `true`
 - [ ] `session.id` present
 - [ ] `model.id` and `model.provider` present
-- [ ] `input.text` captured (truncated if long)
 - [ ] `turn.count` matches actual turns
 - [ ] `tool.count` matches actual tool calls
 - [ ] `tokens.input`, `tokens.output` accumulated
@@ -207,12 +211,19 @@ Use this checklist to verify the extension implements the spec correctly:
 - [ ] `duration_ms` reasonable
 - [ ] `status` = `ok` or `error`
 
+### Input Span Attributes
+
+- [ ] `input.text` captured (truncated if long)
+- [ ] `input.source` present (`interactive`/`rpc`/`extension`)
+- [ ] `input.has_images` / `input.image_count` set when images provided
+- [ ] Parent is Thread span
+
 ### Turn Span Attributes
 
 - [ ] `turn.index` sequential (0, 1, 2...)
 - [ ] `tokens.input`, `tokens.output` for this turn
 - [ ] `stop_reason` = `stop`, `tool_use`, or `aborted`
-- [ ] Parent is main span
+- [ ] Parent is Thread span
 
 ### Tool Span Attributes
 
@@ -227,7 +238,7 @@ Use this checklist to verify the extension implements the spec correctly:
   - **write**: `tool.path`, `tool.content_length`
 - [ ] Parent is turn span
 
-### Rollups (Main Span)
+### Rollups (Thread Span)
 
 - [ ] `bash.cmd.*` counts (e.g., `bash.cmd.git.status: 2`)
 - [ ] `file.*` counts (e.g., `file./src/auth.ts: 3`)
@@ -236,8 +247,8 @@ Use this checklist to verify the extension implements the spec correctly:
 
 ### Hierarchy
 
-- [ ] Spans form correct tree: main → turn → tool
-- [ ] `traceId` same for all spans in a prompt
+- [ ] Spans form correct tree: Thread → Input and Thread → Turn → Tool
+- [ ] `traceId` same for all spans in a session/branch
 - [ ] `parentSpanId` correctly links children to parents
 
 ---
@@ -335,10 +346,10 @@ sleep 5
 # Check if span appeared
 echo "Checking receiver output..."
 OUTPUT=$(tmux capture-pane -t otel -p)
-if echo "$OUTPUT" | grep -q "MAIN SPAN"; then
-  echo "✓ Main span received"
+if echo "$OUTPUT" | grep -q "THREAD SPAN"; then
+  echo "✓ Thread span received"
 else
-  echo "✗ No main span found"
+  echo "✗ No Thread span found"
 fi
 
 if echo "$OUTPUT" | grep -q "tool.name.*read"; then

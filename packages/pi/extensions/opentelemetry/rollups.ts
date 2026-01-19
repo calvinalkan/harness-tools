@@ -4,6 +4,9 @@ type PromptRollup = {
 	turnCount: number;
 	turnDurations: number[];
 	stopReasons: Set<string>;
+	thinkingTurnsWithThinking: number;
+	thinkingBlockCount: number;
+	thinkingTotalLength: number;
 	tokensInput: number;
 	tokensOutput: number;
 	tokensCacheRead: number;
@@ -40,6 +43,9 @@ function createPromptRollup(): PromptRollup {
 		turnCount: 0,
 		turnDurations: [],
 		stopReasons: new Set(),
+		thinkingTurnsWithThinking: 0,
+		thinkingBlockCount: 0,
+		thinkingTotalLength: 0,
 		tokensInput: 0,
 		tokensOutput: 0,
 		tokensCacheRead: 0,
@@ -89,6 +95,11 @@ function applyPromptRollupToSpan(span: Span, rollup: PromptRollup): void {
 	if (rollup.stopReasons.size > 0) {
 		span.attributes["stop_reasons"] = [...rollup.stopReasons].join(",");
 	}
+
+	span.attributes["thinking.present"] = rollup.thinkingBlockCount > 0;
+	span.attributes["thinking.turns_with_thinking"] = rollup.thinkingTurnsWithThinking;
+	span.attributes["thinking.block_count_total"] = rollup.thinkingBlockCount;
+	span.attributes["thinking.total_length"] = rollup.thinkingTotalLength;
 
 	span.attributes["tokens.input"] = rollup.tokensInput;
 	span.attributes["tokens.output"] = rollup.tokensOutput;
