@@ -1,253 +1,253 @@
 {
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "ignorePatterns": [
-    "dist",
-    "node_modules",
-    "__snapshots__",
-    "__fixtures__",
-    ".obsidian",
-    "otel-test-receiver.ts"
-  ],
-  "plugins": [
-    "eslint",
-    "typescript",
-    "unicorn",
-    "react",
-    "react-perf",
-    "jsx-a11y",
-    "oxc",
-    "import",
-    "node",
-    "promise"
-  ],
-  "categories": {
-    "correctness": "error",
-    "nursery": "error",
-    "pedantic": "error",
-    "perf": "error",
-    "restriction": "error",
-    "style": "error",
-    "suspicious": "error"
-  },
-  "rules": {
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-plusplus.html#eslint-no-plusplus
-    "eslint/no-plusplus": "off",
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"ignorePatterns": [
+		"dist",
+		"node_modules",
+		"__snapshots__",
+		"__fixtures__",
+		".obsidian",
+		"otel-test-receiver.ts"
+	],
+	"plugins": [
+		"eslint",
+		"typescript",
+		"unicorn",
+		"react",
+		"react-perf",
+		"jsx-a11y",
+		"oxc",
+		"import",
+		"node",
+		"promise"
+	],
+	"categories": {
+		"correctness": "error",
+		"nursery": "error",
+		"pedantic": "error",
+		"perf": "error",
+		"restriction": "error",
+		"style": "error",
+		"suspicious": "error"
+	},
+	"rules": {
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-plusplus.html#eslint-no-plusplus
+		"eslint/no-plusplus": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-continue.html#eslint-no-continue
-    "eslint/no-continue": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-continue.html#eslint-no-continue
+		"eslint/no-continue": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-negated-condition.html#eslint-no-negated-condition
-    "eslint/no-negated-condition": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-negated-condition.html#eslint-no-negated-condition
+		"eslint/no-negated-condition": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/max-lines-per-function.html#eslint-max-lines-per-function
-    "eslint/max-lines-per-function": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/max-lines-per-function.html#eslint-max-lines-per-function
+		"eslint/max-lines-per-function": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-ternary.html#eslint-no-ternary
-    "eslint/no-ternary": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-ternary.html#eslint-no-ternary
+		"eslint/no-ternary": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/sort-keys.html#eslint-sort-keys
-    "eslint/sort-keys": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/sort-keys.html#eslint-sort-keys
+		"eslint/sort-keys": "off",
 
-    // We use biome formatting for this
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/sort-imports.html#eslint-sort-imports
-    "eslint/sort-imports": "off",
+		// We use biome formatting for this
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/sort-imports.html#eslint-sort-imports
+		"eslint/sort-imports": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/import/no-named-export.html#import-no-named-export
-    "import/no-named-export": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/import/no-named-export.html#import-no-named-export
+		"import/no-named-export": "off",
 
-    // Flags every array access
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-magic-numbers.html#eslint-no-magic-numbers
-    "eslint/no-magic-numbers": "off",
+		// Flags every array access
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-magic-numbers.html#eslint-no-magic-numbers
+		"eslint/no-magic-numbers": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/unicorn/no-null.html#unicorn-no-null
-    "unicorn/no-null": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/unicorn/no-null.html#unicorn-no-null
+		"unicorn/no-null": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/id-length.html#eslint-id-length
-    "id-length": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/id-length.html#eslint-id-length
+		"id-length": "off",
 
-    // Not needed in modern React
-    // https://oxc.rs/docs/guide/usage/linter/rules/react/react-in-jsx-scope.html#react-react-in-jsx-scope
-    "react/react-in-jsx-scope": "off",
+		// Not needed in modern React
+		// https://oxc.rs/docs/guide/usage/linter/rules/react/react-in-jsx-scope.html#react-react-in-jsx-scope
+		"react/react-in-jsx-scope": "off",
 
-    // Overly opinionated naming convention for event handlers
-    // https://oxc.rs/docs/guide/usage/linter/rules/react/jsx-handler-names.html#react-jsx-handler-names
-    "react/jsx-handler-names": "off",
+		// Overly opinionated naming convention for event handlers
+		// https://oxc.rs/docs/guide/usage/linter/rules/react/jsx-handler-names.html#react-jsx-handler-names
+		"react/jsx-handler-names": "off",
 
-    // Useless, TypeScript checks this
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-undef.html#eslint-no-undef
-    "eslint/no-undef": "off",
+		// Useless, TypeScript checks this
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-undef.html#eslint-no-undef
+		"eslint/no-undef": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/typescript/explicit-function-return-type.html#typescript-explicit-function-return-type
-    "typescript/explicit-function-return-type": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/typescript/explicit-function-return-type.html#typescript-explicit-function-return-type
+		"typescript/explicit-function-return-type": "off",
 
-    // Stylistic preference, both T[] and Array<T> are valid depending on context
-    // https://oxc.rs/docs/guide/usage/linter/rules/typescript/array-type.html#typescript-array-type
-    "typescript/array-type": "off",
+		// Stylistic preference, both T[] and Array<T> are valid depending on context
+		// https://oxc.rs/docs/guide/usage/linter/rules/typescript/array-type.html#typescript-array-type
+		"typescript/array-type": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/func-style.html#eslint-func-style
-    "eslint/func-style": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/func-style.html#eslint-func-style
+		"eslint/func-style": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/max-depth.html#eslint-max-depth
-    "eslint/max-depth": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/max-depth.html#eslint-max-depth
+		"eslint/max-depth": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/oxc/no-async-await.html#oxc-no-async-await
-    "oxc/no-async-await": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/oxc/no-async-await.html#oxc-no-async-await
+		"oxc/no-async-await": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/oxc/no-optional-chaining.html#oxc-no-optional-chaining
-    "oxc/no-optional-chaining": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/oxc/no-optional-chaining.html#oxc-no-optional-chaining
+		"oxc/no-optional-chaining": "off",
 
-    // We don't need to support old JS runtimes without object spread
-    // https://oxc.rs/docs/guide/usage/linter/rules/oxc/no-rest-spread-properties.html#oxc-no-rest-spread-properties
-    "oxc/no-rest-spread-properties": "off",
+		// We don't need to support old JS runtimes without object spread
+		// https://oxc.rs/docs/guide/usage/linter/rules/oxc/no-rest-spread-properties.html#oxc-no-rest-spread-properties
+		"oxc/no-rest-spread-properties": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/max-lines.html#eslint-max-lines
-    "eslint/max-lines": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/max-lines.html#eslint-max-lines
+		"eslint/max-lines": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/max-classes-per-file.html#eslint-max-classes-per-file
-    "eslint/max-classes-per-file": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/max-classes-per-file.html#eslint-max-classes-per-file
+		"eslint/max-classes-per-file": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/init-declarations.html#eslint-init-declarations
-    "eslint/init-declarations": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/init-declarations.html#eslint-init-declarations
+		"eslint/init-declarations": "off",
 
-    // Purely stylistic, doesn't prevent bugs or improve safety
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/prefer-destructuring.html#eslint-prefer-destructuring
-    "eslint/prefer-destructuring": "off",
+		// Purely stylistic, doesn't prevent bugs or improve safety
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/prefer-destructuring.html#eslint-prefer-destructuring
+		"eslint/prefer-destructuring": "off",
 
-    // Overly pedantic, solves rare edge case
-    // https://oxc.rs/docs/guide/usage/linter/rules/unicorn/switch-case-braces.html#unicorn-switch-case-braces
-    "unicorn/switch-case-braces": "off",
+		// Overly pedantic, solves rare edge case
+		// https://oxc.rs/docs/guide/usage/linter/rules/unicorn/switch-case-braces.html#unicorn-switch-case-braces
+		"unicorn/switch-case-braces": "off",
 
-    // Opinionated naming convention, conflicts with common React patterns (PascalCase components, camelCase hooks)
-    // https://oxc.rs/docs/guide/usage/linter/rules/unicorn/filename-case.html#unicorn-filename-case
-    "unicorn/filename-case": "off",
+		// Opinionated naming convention, conflicts with common React patterns (PascalCase components, camelCase hooks)
+		// https://oxc.rs/docs/guide/usage/linter/rules/unicorn/filename-case.html#unicorn-filename-case
+		"unicorn/filename-case": "off",
 
-    // Allow flexible naming for catch variables
-    // https://oxc.rs/docs/guide/usage/linter/rules/unicorn/catch-error-name.html#unicorn-catch-error-name
-    "unicorn/catch-error-name": "off",
+		// Allow flexible naming for catch variables
+		// https://oxc.rs/docs/guide/usage/linter/rules/unicorn/catch-error-name.html#unicorn-catch-error-name
+		"unicorn/catch-error-name": "off",
 
-    // replaceAll() requires ES2021+ lib, we use replace() with /g flag instead
-    // https://oxc.rs/docs/guide/usage/linter/rules/unicorn/prefer-string-replace-all.html#unicorn-prefer-string-replace-all
-    "unicorn/prefer-string-replace-all": "off",
+		// replaceAll() requires ES2021+ lib, we use replace() with /g flag instead
+		// https://oxc.rs/docs/guide/usage/linter/rules/unicorn/prefer-string-replace-all.html#unicorn-prefer-string-replace-all
+		"unicorn/prefer-string-replace-all": "off",
 
-    // Nested ternaries can be readable and concise for simple cases
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-nested-ternary.html#eslint-no-nested-ternary
-    "eslint/no-nested-ternary": "off",
+		// Nested ternaries can be readable and concise for simple cases
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-nested-ternary.html#eslint-no-nested-ternary
+		"eslint/no-nested-ternary": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/unicorn/no-nested-ternary.html#unicorn-no-nested-ternary
-    "unicorn/no-nested-ternary": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/unicorn/no-nested-ternary.html#unicorn-no-nested-ternary
+		"unicorn/no-nested-ternary": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/typescript/consistent-type-definitions.html#typescript-consistent-type-definitions
-    "typescript/consistent-type-definitions": ["error", "type"],
+		// https://oxc.rs/docs/guide/usage/linter/rules/typescript/consistent-type-definitions.html#typescript-consistent-type-definitions
+		"typescript/consistent-type-definitions": ["error", "type"],
 
-    // NOTE: seems to only be enforced for .tsx/.jsx files, not .ts files
-    // https://oxc.rs/docs/guide/usage/linter/rules/import/extensions.html#import-extensions
-    "import/extensions": ["error", "ignorePackages"],
+		// NOTE: seems to only be enforced for .tsx/.jsx files, not .ts files
+		// https://oxc.rs/docs/guide/usage/linter/rules/import/extensions.html#import-extensions
+		"import/extensions": ["error", "ignorePackages"],
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/import/max-dependencies.html#import-max-dependencies
-    "import/max-dependencies": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/import/max-dependencies.html#import-max-dependencies
+		"import/max-dependencies": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/import/consistent-type-specifier-style.html#import-consistent-type-specifier-style
-    "import/consistent-type-specifier-style": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/import/consistent-type-specifier-style.html#import-consistent-type-specifier-style
+		"import/consistent-type-specifier-style": "off",
 
-    // Both .then()/.catch() and async/await are valid patterns depending on context
-    // https://oxc.rs/docs/guide/usage/linter/rules/promise/prefer-await-to-then.html#promise-prefer-await-to-then
-    "promise/prefer-await-to-then": "off",
+		// Both .then()/.catch() and async/await are valid patterns depending on context
+		// https://oxc.rs/docs/guide/usage/linter/rules/promise/prefer-await-to-then.html#promise-prefer-await-to-then
+		"promise/prefer-await-to-then": "off",
 
-    // new Promise() is necessary for promisifying callbacks like setTimeout
-    // https://oxc.rs/docs/guide/usage/linter/rules/promise/avoid-new.html#promise-avoid-new
-    "promise/avoid-new": "off",
+		// new Promise() is necessary for promisifying callbacks like setTimeout
+		// https://oxc.rs/docs/guide/usage/linter/rules/promise/avoid-new.html#promise-avoid-new
+		"promise/avoid-new": "off",
 
-    // Top-level .catch() for error handling in CLI is valid
-    // https://oxc.rs/docs/guide/usage/linter/rules/promise/prefer-await-to-callbacks.html#promise-prefer-await-to-callbacks
-    "promise/prefer-await-to-callbacks": "off",
+		// Top-level .catch() for error handling in CLI is valid
+		// https://oxc.rs/docs/guide/usage/linter/rules/promise/prefer-await-to-callbacks.html#promise-prefer-await-to-callbacks
+		"promise/prefer-await-to-callbacks": "off",
 
-    // Arbitrary limit
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/max-params.html#eslint-max-params
-    "eslint/max-params": "off",
+		// Arbitrary limit
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/max-params.html#eslint-max-params
+		"eslint/max-params": "off",
 
-    // Not always desirable
-    // https://oxc.rs/docs/guide/usage/linter/rules/unicorn/prefer-top-level-await.html#unicorn-prefer-top-level-await
-    "unicorn/prefer-top-level-await": "off",
+		// Not always desirable
+		// https://oxc.rs/docs/guide/usage/linter/rules/unicorn/prefer-top-level-await.html#unicorn-prefer-top-level-await
+		"unicorn/prefer-top-level-await": "off",
 
-    // CSS/side-effect imports are necessary
-    // https://oxc.rs/docs/guide/usage/linter/rules/import/no-unassigned-import.html#import-no-unassigned-import
-    "import/no-unassigned-import": "off",
+		// CSS/side-effect imports are necessary
+		// https://oxc.rs/docs/guide/usage/linter/rules/import/no-unassigned-import.html#import-no-unassigned-import
+		"import/no-unassigned-import": "off",
 
-    // Both Math.pow() and ** are valid
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/prefer-exponentiation-operator.html#eslint-prefer-exponentiation-operator
-    "eslint/prefer-exponentiation-operator": "off",
+		// Both Math.pow() and ** are valid
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/prefer-exponentiation-operator.html#eslint-prefer-exponentiation-operator
+		"eslint/prefer-exponentiation-operator": "off",
 
-    // else blocks after returns are sometimes clearer for readability
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-else-return.html#eslint-no-else-return
-    "eslint/no-else-return": "off",
+		// else blocks after returns are sometimes clearer for readability
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-else-return.html#eslint-no-else-return
+		"eslint/no-else-return": "off",
 
-    // Both substring() and slice() are valid
-    // https://oxc.rs/docs/guide/usage/linter/rules/unicorn/prefer-string-slice.html#unicorn-prefer-string-slice
-    "unicorn/prefer-string-slice": "off",
+		// Both substring() and slice() are valid
+		// https://oxc.rs/docs/guide/usage/linter/rules/unicorn/prefer-string-slice.html#unicorn-prefer-string-slice
+		"unicorn/prefer-string-slice": "off",
 
-    // It's sometimes nice to have related methods grouped in a class, even if they're helpers
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/class-methods-use-this.html#eslint-class-methods-use-this
-    "eslint/class-methods-use-this": "off",
+		// It's sometimes nice to have related methods grouped in a class, even if they're helpers
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/class-methods-use-this.html#eslint-class-methods-use-this
+		"eslint/class-methods-use-this": "off",
 
-    // https://oxc.rs/docs/guide/usage/linter/rules/unicorn/no-lonely-if.html#unicorn-no-lonely-if
-    // using ifs nested is sometimes clearer for control flow.
-    "unicorn/no-lonely-if": "off",
+		// https://oxc.rs/docs/guide/usage/linter/rules/unicorn/no-lonely-if.html#unicorn-no-lonely-if
+		// using ifs nested is sometimes clearer for control flow.
+		"unicorn/no-lonely-if": "off",
 
-    "eslint/arrow-body-style": "off",
+		"eslint/arrow-body-style": "off",
 
-    // Ignore type-only imports for circular dependency detection
-    // https://oxc.rs/docs/guide/usage/linter/rules/import/no-cycle.html#import-no-cycle
-    "import/no-cycle": ["error", { "ignoreTypes": true }],
+		// Ignore type-only imports for circular dependency detection
+		// https://oxc.rs/docs/guide/usage/linter/rules/import/no-cycle.html#import-no-cycle
+		"import/no-cycle": ["error", { "ignoreTypes": true }],
 
-    // Useless, style-only
-    "import/exports-last": "off",
+		// Useless, style-only
+		"import/exports-last": "off",
 
-    "import/no-default-export": "off",
+		"import/no-default-export": "off",
 
-    // TypeScript's switch-exhaustiveness-check is more precise than requiring a default case
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/default-case.html#eslint-default-case
-    "eslint/default-case": "off",
+		// TypeScript's switch-exhaustiveness-check is more precise than requiring a default case
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/default-case.html#eslint-default-case
+		"eslint/default-case": "off",
 
-    // Outdated paranoia from ES3 era when `undefined` could be reassigned.
-    // Modern JS (ES5+) prevents reassignment, and no-shadow-restricted-names
-    // prevents shadowing. Conflicts with no-typeof-undefined.
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-undefined.html
-    "eslint/no-undefined": "off",
+		// Outdated paranoia from ES3 era when `undefined` could be reassigned.
+		// Modern JS (ES5+) prevents reassignment, and no-shadow-restricted-names
+		// prevents shadowing. Conflicts with no-typeof-undefined.
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-undefined.html
+		"eslint/no-undefined": "off",
 
-    // Redundant with no-floating-promises which catches actual bugs (missing await on async calls).
-    // require-await causes false positives for valid async functions without await
-    // (e.g., satisfying Promise<void> interface, consistent API, throwing as rejection).
-    // https://oxc.rs/docs/guide/usage/linter/rules/eslint/require-await.html
-    "eslint/require-await": "off",
-    "typescript/require-await": "off"
-  },
-  "overrides": [
-    {
-      "files": ["**/*.{ts,tsx}"],
-      "rules": {
-        // Forces helper functions to be extracted even when they're logically scoped to their parent
-        // https://oxc.rs/docs/guide/usage/linter/rules/unicorn/consistent-function-scoping.html#unicorn-consistent-function-scoping
-        "unicorn/consistent-function-scoping": "off",
+		// Redundant with no-floating-promises which catches actual bugs (missing await on async calls).
+		// require-await causes false positives for valid async functions without await
+		// (e.g., satisfying Promise<void> interface, consistent API, throwing as rejection).
+		// https://oxc.rs/docs/guide/usage/linter/rules/eslint/require-await.html
+		"eslint/require-await": "off",
+		"typescript/require-await": "off"
+	},
+	"overrides": [
+		{
+			"files": ["**/*.{ts,tsx}"],
+			"rules": {
+				// Forces helper functions to be extracted even when they're logically scoped to their parent
+				// https://oxc.rs/docs/guide/usage/linter/rules/unicorn/consistent-function-scoping.html#unicorn-consistent-function-scoping
+				"unicorn/consistent-function-scoping": "off",
 
-        // Makes it hard to grep code, and also conflicts with other rules.
-        "eslint/prefer-default-export": "off",
+				// Makes it hard to grep code, and also conflicts with other rules.
+				"eslint/prefer-default-export": "off",
 
-        "node/no-process-env": "off"
-      }
-    },
-    {
-      "files": ["packages/pi/**/*.{ts,tsx}"],
-      "rules": {
-        // Forces helper functions to be extracted even when they're logically scoped to their parent
-        // https://oxc.rs/docs/guide/usage/linter/rules/unicorn/consistent-function-scoping.html#unicorn-consistent-function-scoping
-        "unicorn/consistent-function-scoping": "off",
+				"node/no-process-env": "off"
+			}
+		},
+		{
+			"files": ["packages/pi/**/*.{ts,tsx}"],
+			"rules": {
+				// Forces helper functions to be extracted even when they're logically scoped to their parent
+				// https://oxc.rs/docs/guide/usage/linter/rules/unicorn/consistent-function-scoping.html#unicorn-consistent-function-scoping
+				"unicorn/consistent-function-scoping": "off",
 
-        "eslint/prefer-default-export": "off",
-        "import/prefer-default-export": "off",
+				"eslint/prefer-default-export": "off",
+				"import/prefer-default-export": "off",
 
-        // Pi requieres typebox, which triggers false positives
-        "eslint/new-cap": "off"
-      }
-    }
-  ]
+				// Pi requieres typebox, which triggers false positives
+				"eslint/new-cap": "off"
+			}
+		}
+	]
 }
