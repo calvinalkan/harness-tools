@@ -83,10 +83,9 @@ function addToolSpanAttributes(span: Span, event: ToolResultEvent): void {
 	const textValue = textContent !== undefined && "text" in textContent ? textContent.text : undefined;
 	const outputText = typeof textValue === "string" ? textValue : undefined;
 
-	span.attributes["tool.is_error"] = event.isError;
 	if (event.isError && outputText !== undefined) {
 		const { text: truncatedText } = truncate(outputText, MAX_OUTPUT_LENGTH);
-		span.attributes["tool.error_message"] = truncatedText;
+		span.attributes["error.message"] = truncatedText;
 	}
 
 	if (toolName === "bash") {

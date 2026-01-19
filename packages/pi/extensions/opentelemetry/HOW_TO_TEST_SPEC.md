@@ -8,7 +8,7 @@ This guide explains how to use the test receiver to verify the OpenTelemetry ext
 
 ```bash
 # Terminal 1: Start the test receiver (all modes, verbose)
-tmux new-session -d -s otel "bun otel-receiver.ts -v"
+tmux new-session -d -s otel "bun tools/otel-test-receiver.ts -v"
 tmux attach -t otel
 
 # Terminal 2: Start pi with telemetry export
@@ -21,13 +21,13 @@ PI_TELEMETRY_EXPORT=http://localhost:4318/v1/traces pi
 
 ## Test Receiver
 
-The `otel-receiver.ts` script in the project root receives OTLP spans and pretty-prints them. It supports all three export modes the extension uses.
+The `tools/otel-test-receiver.ts` script receives OTLP spans and pretty-prints them. It supports all three export modes the extension uses.
 
 ### Start All Modes (Recommended)
 
 ```bash
 # Start in tmux with verbose output
-tmux new-session -d -s otel "bun otel-receiver.ts -v"
+tmux new-session -d -s otel "bun tools/otel-test-receiver.ts -v"
 
 # Attach to watch output
 tmux attach -t otel
@@ -42,16 +42,16 @@ This starts:
 
 ```bash
 # HTTP only
-bun otel-receiver.ts --http --port 4318
+bun tools/otel-test-receiver.ts --http --port 4318
 
 # Unix socket only
-bun otel-receiver.ts --unix --sock /tmp/otel.sock
+bun tools/otel-test-receiver.ts --unix --sock /tmp/otel.sock
 
 # File watcher only
-bun otel-receiver.ts --file --dir ~/.pi/agent/telemetry
+bun tools/otel-test-receiver.ts --file --dir ~/.pi/agent/telemetry
 
 # Combine modes
-bun otel-receiver.ts --http --unix
+bun tools/otel-test-receiver.ts --http --unix
 ```
 
 ### Options
@@ -71,7 +71,7 @@ bun otel-receiver.ts --http --unix
 
 ```bash
 # Start receiver in background
-tmux new-session -d -s otel "bun otel-receiver.ts -v"
+tmux new-session -d -s otel "bun tools/otel-test-receiver.ts -v"
 
 # Attach to see output
 tmux attach -t otel
@@ -91,7 +91,7 @@ tmux kill-session -t otel
 
 ```bash
 # Start receiver
-tmux new-session -d -s otel "bun otel-receiver.ts -v"
+tmux new-session -d -s otel "bun tools/otel-test-receiver.ts -v"
 
 # Configure pi to export via HTTP
 PI_TELEMETRY_EXPORT=http://localhost:4318/v1/traces pi
@@ -106,7 +106,7 @@ curl -X POST http://localhost:4318/v1/traces \
 
 ```bash
 # Start receiver
-tmux new-session -d -s otel "bun otel-receiver.ts -v"
+tmux new-session -d -s otel "bun tools/otel-test-receiver.ts -v"
 
 # Configure pi to export via Unix socket
 PI_TELEMETRY_EXPORT=unix:///tmp/otel.sock pi
@@ -119,7 +119,7 @@ echo '{"resourceSpans":[{"resource":{"attributes":[]},"scopeSpans":[{"scope":{"n
 
 ```bash
 # Start receiver
-tmux new-session -d -s otel "bun otel-receiver.ts -v"
+tmux new-session -d -s otel "bun tools/otel-test-receiver.ts -v"
 
 # Configure pi to export to file (default)
 PI_TELEMETRY_EXPORT=file://~/.pi/agent/telemetry pi
@@ -219,7 +219,7 @@ Use this checklist to verify the extension implements the spec correctly:
 - [ ] `tool.name` = `bash`, `read`, `edit`, `write`, or custom
 - [ ] `tool.call_id` unique
 - [ ] `tool.duration_ms` reasonable
-- [ ] `tool.is_error` set correctly
+- [ ] `error` set to `true` when tool fails, absent otherwise
 - [ ] Tool-specific attributes:
   - **bash**: `tool.command`, `tool.command_parsed`
   - **read**: `tool.path`, `tool.truncated`
@@ -246,7 +246,7 @@ Use this checklist to verify the extension implements the spec correctly:
 
 ```bash
 # 1. Start receiver
-tmux new-session -d -s otel "bun otel-receiver.ts -v"
+tmux new-session -d -s otel "bun tools/otel-test-receiver.ts -v"
 
 # 2. Start pi with HTTP export
 PI_TELEMETRY_EXPORT=http://localhost:4318/v1/traces pi
@@ -273,7 +273,7 @@ Run pi in tmux and send commands programmatically:
 
 ```bash
 # 1. Start receiver in one session
-tmux new-session -d -s otel "bun otel-receiver.ts -v"
+tmux new-session -d -s otel "bun tools/otel-test-receiver.ts -v"
 
 # 2. Start pi in another session with telemetry enabled
 tmux new-session -d -s pi "PI_TELEMETRY_EXPORT=http://localhost:4318/v1/traces pi"
@@ -319,7 +319,7 @@ tmux kill-session -t pi 2>/dev/null || true
 
 # Start receiver
 echo "Starting receiver..."
-tmux new-session -d -s otel "bun otel-receiver.ts -v"
+tmux new-session -d -s otel "bun tools/otel-test-receiver.ts -v"
 sleep 1
 
 # Start pi with HTTP export
@@ -427,7 +427,7 @@ tmux capture-pane -t pi -p
 lsof -i :4318
 
 # Try a different port
-bun otel-receiver.ts --http --port 4319
+bun tools/otel-test-receiver.ts --http --port 4319
 PI_TELEMETRY_EXPORT=http://localhost:4319/v1/traces pi
 ```
 
@@ -439,7 +439,7 @@ rm /tmp/otel.sock
 
 # Restart receiver
 tmux kill-session -t otel
-tmux new-session -d -s otel "bun otel-receiver.ts -v"
+tmux new-session -d -s otel "bun tools/otel-test-receiver.ts -v"
 ```
 
 ### File watcher not picking up changes

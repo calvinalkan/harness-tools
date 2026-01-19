@@ -129,6 +129,9 @@ function endSpan(span: Span, status: "ok" | "error" = "ok"): void {
 	span.endTimeMs = nowMs();
 	span.durationMs = span.endTimeMs - span.startTimeMs;
 	span.status = status;
+	if (status === "error") {
+		span.attributes["error"] = true;
+	}
 	exporter.bufferSpan(span);
 }
 

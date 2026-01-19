@@ -1,41 +1,41 @@
 {
-	"$schema": "https://json.schemastore.org/tsconfig",
-	"compilerOptions": {
-		// === Module Resolution & Imports ===
-		"module": "ESNext",
-		"moduleResolution": "bundler",
-		"allowImportingTsExtensions": true,
-		"allowSyntheticDefaultImports": true,
-		"esModuleInterop": true,
-		"resolveJsonModule": true,
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    // === Module Resolution & Imports ===
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
 
-		// === Type Checking - Base Strict Mode ===
-		"strict": true,
+    // === Type Checking - Base Strict Mode ===
+    "strict": true,
 
-		// === Type Checking - Additional Strict Options ===
-		"exactOptionalPropertyTypes": true,
-		"noUncheckedIndexedAccess": true,
-		"noPropertyAccessFromIndexSignature": true,
-		"noImplicitReturns": true,
-		"noImplicitOverride": true,
-		"noFallthroughCasesInSwitch": true,
+    // === Type Checking - Additional Strict Options ===
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
 
-		// === Unused Code Detection ===
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"allowUnreachableCode": false,
-		"allowUnusedLabels": false,
+    // === Unused Code Detection ===
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
 
-		// === Emit & Build ===
-		"noEmit": true,
-		"target": "ESNext",
-		"lib": ["ESNext"],
+    // === Emit & Build ===
+    "noEmit": true,
+    "target": "ESNext",
+    "lib": ["ESNext"],
 
-		// === Other ===
-		"forceConsistentCasingInFileNames": true,
-		"skipLibCheck": true,
-		"types": ["node"]
-	},
-	"include": ["packages/**/*.ts"],
-	"exclude": ["**/node_modules", "**/.*/"]
+    // === Other ===
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "types": ["node", "bun"],
+  },
+  "include": ["packages/**/*.ts"],
+  "exclude": ["**/node_modules", "**/.*/"],
 }

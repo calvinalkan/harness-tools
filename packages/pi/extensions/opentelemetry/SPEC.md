@@ -41,6 +41,14 @@ Main Span (prompt) [main=true]
 
 ---
 
+## Common Span Attributes
+
+| Attribute | Type | Source | Description |
+|-----------|------|--------|-------------|
+| `error` | boolean | computed | Present and `true` when span ends with error status |
+
+---
+
 ## Session Navigation Spans (Root)
 
 Fork and tree navigation events emit **root spans** with their own trace IDs.
@@ -357,8 +365,8 @@ Same pattern as main span, prefixed with `turn.`:
 | `tool.name` | string | `event.toolName` | Tool name |
 | `tool.call_id` | string | `event.toolCallId` | Unique call ID |
 | `tool.duration_ms` | number | computed | Execution time |
-| `tool.is_error` | boolean | `event.isError` | Did it fail? |
-| `tool.error_message` | string | extract from content | Error text if failed |
+| `error` | boolean | `event.isError` | Set to `true` when tool fails (common attribute) |
+| `error.message` | string | extract from content | Error text if failed |
 | `tool.model.provider` | string | state | Model that made this call |
 | `tool.model.id` | string | state | Model ID |
 | `tool.input_length` | number | computed | JSON length of tool input |
