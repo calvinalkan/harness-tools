@@ -1,0 +1,38 @@
+extensions:
+  file_storage:
+    directory: ${HOME}/.local/share/otelcol/buffer
+
+receivers:
+  otlp/pi:
+    protocols:
+      http:
+        endpoint: localhost:4318
+
+exporters:
+  otlp/pi-honeycomb:
+    endpoint: "api.eu1.honeycomb.io:443"
+    headers:
+      # Replace with your actual Honeycomb API key
+      "x-honeycomb-team": "YOUR_HONEYCOMB_API_KEY_HERE"
+      "x-honeycomb-dataset": "pi-telemetry"
+    retry_on_failure:
+      enabled: true
+    sending_queue:
+      enabled: true
+      storage: file_storage
+
+  file/pi-backup:
+    path: ${HOME}/.local/share/otelcol/pi-traces.json
+    rotation:
+      max_megabytes: 100
+      max_days: 30
+
+service:
+  telemetry:
+    metrics:
+      level: none
+  extensions: [file_storage]
+  pipelines:
+    traces/pi:
+      receivers: [otlp/pi]
+      exporters: [otlp/pi-honeycomb, file/pi-backup]
