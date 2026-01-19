@@ -1,7 +1,7 @@
-import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 
+import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { type Static, Type } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
 
@@ -82,4 +82,3 @@ function commandDisplayName(cmd: Command): string {
 }
 
 export { type BackpressureConfig, type Command, type Rule, loadConfig, commandDisplayName };
-

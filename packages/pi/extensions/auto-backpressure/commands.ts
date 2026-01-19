@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { matchesGlob } from "node:path";
 
-import { commandDisplayName, type BackpressureConfig, type Command, type Rule } from "./config";
+import { type BackpressureConfig, type Command, commandDisplayName, type Rule } from "./config";
 import { log } from "./log";
 
 type CommandGroup = {

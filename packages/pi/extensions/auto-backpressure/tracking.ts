@@ -1,6 +1,7 @@
-import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { existsSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
+
+import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 
 import type { BackpressureConfig } from "./config";
 import { log } from "./log";

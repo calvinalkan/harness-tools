@@ -26,9 +26,7 @@ function buildSnapshot(cwd: string, files: string[]): Snapshot {
 	entries.sort((a, b) => a.path.localeCompare(b.path));
 
 	const id = entries
-		.map((entry) =>
-			[entry.path, entry.mtimeMs, entry.size, entry.missing ? 1 : 0].join("\0"),
-		)
+		.map((entry) => [entry.path, entry.mtimeMs, entry.size, entry.missing ? 1 : 0].join("\0"))
 		.join("\n");
 
 	return { id, files: entries };

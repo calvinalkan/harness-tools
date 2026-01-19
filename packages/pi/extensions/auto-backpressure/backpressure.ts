@@ -1,7 +1,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 
-import { loadConfig } from "./config";
 import { groupFilesByCommand, runCommands } from "./commands";
+import { loadConfig } from "./config";
 import { getGitDirtyFiles } from "./git";
 import { log } from "./log";
 import { buildSnapshot, snapshotChanged } from "./snapshot";
