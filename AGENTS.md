@@ -10,6 +10,7 @@ harness-tools/
 │   ├── codex/
 │   │   └── AGENTS.md       # Codex global AGENTS.md (linked to ~/.codex/AGENTS.md)
 │   └── pi/                 # Pi agent customizations
+│       ├── AGENTS.md       # Pi global AGENTS.md (linked to ~/.pi/agent/AGENTS.md)
 │       ├── extensions/     # TypeScript extensions (auto-discovered)
 │       ├── prompts/        # System prompts
 │       ├── themes/         # Custom themes

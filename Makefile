@@ -106,7 +106,26 @@ link-pi:
 			echo -e "$(GREEN)  ✓ $$dir$(NC)"; \
 		fi; \
 	done; \
-	[ $$failed -eq 0 ] || (echo -e "$(RED)Some directories could not be linked. Remove or move them first.$(NC)" && exit 1)
+	src="$(PI_SRC)/AGENTS.md"; \
+	dest="$(PI_DIR)/AGENTS.md"; \
+	if [ -f "$$src" ]; then \
+		if [ -L "$$dest" ]; then \
+			target=$$(readlink "$$dest"); \
+			if [ "$$target" = "$$src" ]; then \
+				echo -e "$(GREEN)  ✓ AGENTS.md (already linked)$(NC)"; \
+			else \
+				echo -e "$(RED)  ✗ AGENTS.md is linked elsewhere: $$target$(NC)"; \
+				failed=1; \
+			fi; \
+		elif [ -e "$$dest" ]; then \
+			echo -e "$(RED)  ✗ AGENTS.md exists and is not a symlink$(NC)"; \
+			failed=1; \
+		else \
+			ln -s "$$src" "$$dest"; \
+			echo -e "$(GREEN)  ✓ AGENTS.md$(NC)"; \
+		fi; \
+	fi; \
+	[ $$failed -eq 0 ] || (echo -e "$(RED)Some items could not be linked. Remove or move them first.$(NC)" && exit 1)
 
 unlink-pi:
 	@echo -e "$(BLUE)Unlinking Pi agent customizations...$(NC)"
@@ -124,6 +143,18 @@ unlink-pi:
 			echo -e "$(YELLOW)  ⊘ $$dir (not linked)$(NC)"; \
 		fi; \
 	done
+	@src="$(PI_SRC)/AGENTS.md"; \
+	dest="$(PI_DIR)/AGENTS.md"; \
+	if [ -L "$$dest" ] && [ "$$(readlink "$$dest")" = "$$src" ]; then \
+		rm "$$dest"; \
+		echo -e "$(GREEN)  ✓ AGENTS.md$(NC)"; \
+	elif [ -L "$$dest" ]; then \
+		echo -e "$(YELLOW)  ⚠ AGENTS.md linked elsewhere, skipping$(NC)"; \
+	elif [ -e "$$dest" ]; then \
+		echo -e "$(YELLOW)  ⚠ AGENTS.md is not a symlink, skipping$(NC)"; \
+	else \
+		echo -e "$(YELLOW)  ⊘ AGENTS.md (not linked)$(NC)"; \
+	fi
 
 status-pi:
 	@echo -e "$(BLUE)Pi Agent (~/.pi/agent/)$(NC)"
@@ -144,6 +175,22 @@ status-pi:
 			echo -e "  $(YELLOW)⊘$(NC) $$dir (not linked)"; \
 		fi; \
 	done
+	@src="$(PI_SRC)/AGENTS.md"; \
+	dest="$(PI_DIR)/AGENTS.md"; \
+	if [ -f "$$src" ]; then \
+		if [ -L "$$dest" ]; then \
+			target=$$(readlink "$$dest"); \
+			if [ "$$target" = "$$src" ]; then \
+				echo -e "  $(GREEN)✓$(NC) AGENTS.md → $$src"; \
+			else \
+				echo -e "  $(YELLOW)⚠$(NC) AGENTS.md → $$target (not ours)"; \
+			fi; \
+		elif [ -e "$$dest" ]; then \
+			echo -e "  $(RED)✗$(NC) AGENTS.md (exists, not a symlink)"; \
+		else \
+			echo -e "  $(YELLOW)⊘$(NC) AGENTS.md (not linked)"; \
+		fi; \
+	fi
 
 # ============================================================================
 # Codex
