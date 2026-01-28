@@ -12,8 +12,6 @@ Work/Response style: telegraph; noun-phrases ok; drop filler/grammar; min tokens
 - `read-only file system` / `permission denied` errors for commands/file edits = likely sandboxed.
 - Editor: `zed -n <path>`
 - Web: search early; quote exact errors; prefer 2024–2025 sources
-- Use Codex background for long jobs; `tmux` only for interactive/persistent (debugger/server), or when asked explicitly to.
-  - Quick refs: `tmux new -d -s codex-shell`, `tmux attach -t codex-shell`, `tmux list-sessions`, `tmux kill-session -t codex-shell`.
 
 ## Critical Thinking
 - Fix root cause (not band-aid).
