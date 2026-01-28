@@ -8,12 +8,15 @@
 #   make help     - Show this help
 
 SHELL := /bin/bash
-.PHONY: link unlink status help link-pi unlink-pi status-pi clean format typecheck check lint
+.PHONY: link unlink status help link-pi unlink-pi status-pi link-codex unlink-codex status-codex clean format typecheck check lint
 
 # Directories
 HARNESS_DIR := $(shell pwd)
 PI_SRC := $(HARNESS_DIR)/packages/pi
 PI_DIR := $(HOME)/.pi/agent
+CODEX_SRC := $(HARNESS_DIR)/packages/codex/AGENTS.md
+CODEX_DIR := $(HOME)/.codex
+CODEX_DEST := $(CODEX_DIR)/AGENTS.md
 
 # Colors for output
 GREEN := \033[0;32m
@@ -38,18 +41,21 @@ help:
 	@echo "  make link-pi    Link only Pi agent customizations"
 	@echo "  make unlink-pi  Unlink only Pi agent customizations"
 	@echo "  make status-pi  Show Pi agent link status"
+	@echo "  make link-codex    Link Codex global AGENTS.md"
+	@echo "  make unlink-codex  Unlink Codex global AGENTS.md"
+	@echo "  make status-codex  Show Codex AGENTS.md link status"
 
 # ============================================================================
 # Main targets
 # ============================================================================
 
-link: link-pi
+link: link-pi link-codex
 	@echo -e "$(GREEN)✓ All agent customizations linked$(NC)"
 
-unlink: unlink-pi
+unlink: unlink-pi unlink-codex
 	@echo -e "$(GREEN)✓ All agent customizations unlinked$(NC)"
 
-status: status-pi
+status: status-pi status-codex
 
 clean:
 	@echo -e "$(BLUE)Removing node_modules...$(NC)"
@@ -138,3 +144,54 @@ status-pi:
 			echo -e "  $(YELLOW)⊘$(NC) $$dir (not linked)"; \
 		fi; \
 	done
+
+# ============================================================================
+# Codex
+# ============================================================================
+
+link-codex:
+	@echo -e "$(BLUE)Linking Codex global AGENTS.md...$(NC)"
+	@mkdir -p "$(CODEX_DIR)"
+	@if [ -L "$(CODEX_DEST)" ]; then \
+		target=$$(readlink "$(CODEX_DEST)"); \
+		if [ "$$target" = "$(CODEX_SRC)" ]; then \
+			echo -e "$(GREEN)  ✓ AGENTS.md (already linked)$(NC)"; \
+		else \
+			echo -e "$(RED)  ✗ AGENTS.md is linked elsewhere: $$target$(NC)"; \
+			exit 1; \
+		fi; \
+	elif [ -e "$(CODEX_DEST)" ]; then \
+		echo -e "$(RED)  ✗ AGENTS.md exists and is not a symlink$(NC)"; \
+		exit 1; \
+	else \
+		ln -s "$(CODEX_SRC)" "$(CODEX_DEST)"; \
+		echo -e "$(GREEN)  ✓ AGENTS.md$(NC)"; \
+	fi
+
+unlink-codex:
+	@echo -e "$(BLUE)Unlinking Codex global AGENTS.md...$(NC)"
+	@if [ -L "$(CODEX_DEST)" ] && [ "$$(readlink "$(CODEX_DEST)")" = "$(CODEX_SRC)" ]; then \
+		rm "$(CODEX_DEST)"; \
+		echo -e "$(GREEN)  ✓ AGENTS.md$(NC)"; \
+	elif [ -L "$(CODEX_DEST)" ]; then \
+		echo -e "$(YELLOW)  ⚠ AGENTS.md linked elsewhere, skipping$(NC)"; \
+	elif [ -e "$(CODEX_DEST)" ]; then \
+		echo -e "$(YELLOW)  ⚠ AGENTS.md is not a symlink, skipping$(NC)"; \
+	else \
+		echo -e "$(YELLOW)  ⊘ AGENTS.md (not linked)$(NC)"; \
+	fi
+
+status-codex:
+	@echo -e "$(BLUE)Codex (~/.codex/AGENTS.md)$(NC)"
+	@if [ -L "$(CODEX_DEST)" ]; then \
+		target=$$(readlink "$(CODEX_DEST)"); \
+		if [ "$$target" = "$(CODEX_SRC)" ]; then \
+			echo -e "  $(GREEN)✓$(NC) AGENTS.md → $(CODEX_SRC)"; \
+		else \
+			echo -e "  $(YELLOW)⚠$(NC) AGENTS.md → $$target (not ours)"; \
+		fi; \
+	elif [ -e "$(CODEX_DEST)" ]; then \
+		echo -e "  $(RED)✗$(NC) AGENTS.md (exists, not a symlink)"; \
+	else \
+		echo -e "  $(YELLOW)⊘$(NC) AGENTS.md (not linked)"; \
+	fi

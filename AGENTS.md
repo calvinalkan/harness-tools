@@ -7,6 +7,8 @@ This repo is the single source of truth for all coding agent customizations we u
 ```
 harness-tools/
 ├── packages/
+│   ├── codex/
+│   │   └── AGENTS.md       # Codex global AGENTS.md (linked to ~/.codex/AGENTS.md)
 │   └── pi/                 # Pi agent customizations
 │       ├── extensions/     # TypeScript extensions (auto-discovered)
 │       ├── prompts/        # System prompts
@@ -26,6 +28,8 @@ Important: We do **only** use `Bun` to manage dependencies or run commands.
 Never use `npm`, `yarn`, or `pnpm`, `npx` or `bunx`.
 
 We use `tsgo` (bun tsgo), not `tsc`.
+
+Note: Linking workflow lives in `Makefile` (`link`/`unlink`/`status`, plus agent-specific targets).
 
 ## Adding Customizations
 
